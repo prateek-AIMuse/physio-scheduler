@@ -2,6 +2,7 @@ import { addMyPreference, deleteMyPreference } from "@/app/me/actions";
 import { Flash, type FlashParams } from "@/components/flash";
 import { InstallPrompt } from "@/components/install-prompt";
 import { Logo } from "@/components/logo";
+import { APP_NAME } from "@/lib/brand";
 import { Photo } from "@/components/photo";
 import { PreferenceEditor } from "@/components/preference-editor";
 import { requirePatient } from "@/lib/auth";
@@ -32,7 +33,7 @@ export default async function MyPage({ searchParams }: { searchParams: FlashPara
     <div className="shell">
       <header className="top">
         <div className="top-row">
-          <span className="brand"><Logo /><span>{practiceLabel(s)}<small>Your physio sessions</small></span></span>
+          <span className="brand"><Logo /><span>{APP_NAME}<small>{practiceLabel(s)}</small></span></span>
           <form action="/auth/signout" method="post"><button className="btn sm">Log out</button></form>
         </div>
       </header>

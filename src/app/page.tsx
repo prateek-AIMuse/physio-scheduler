@@ -6,13 +6,14 @@ import { Reveal } from "@/components/reveal";
 import { getViewer } from "@/lib/auth";
 import { supabaseConfigured } from "@/lib/env";
 import { getPublicSettings } from "@/lib/settings";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 
 export default async function Home() {
   const viewer = supabaseConfigured() ? await getViewer() : null;
   if (viewer?.role === "admin") redirect("/admin");
   if (viewer?.role === "patient") redirect("/me");
   const s = await getPublicSettings();
-  const name = s.practice_name || s.physio_name || "Physio";
+  const practice = s.practice_name && s.practice_name !== "Physio" ? s.practice_name : s.physio_name;
   const clinic = s.clinic_name || "the clinic";
 
   return (
@@ -21,7 +22,7 @@ export default async function Home() {
       <header className="hero">
         <Photo name="hero" zoom />
         <nav className="hero-nav">
-          <span className="brand"><Logo />{name}<small>Physiotherapy</small></span>
+          <span className="brand"><Logo /><span>{APP_NAME}<small>{practice || APP_TAGLINE}</small></span></span>
           <Link href="/login" className="btn ghost sm">Log in</Link>
         </nav>
         <div className="hero-inner">
@@ -92,14 +93,14 @@ export default async function Home() {
         <Photo name="rehab" />
         <div className="band-inner">
           <span className="kicker" style={{ color: "#5EEAD4", background: "none" }}>Already a patient?</span>
-          <h2>Your sessions, package and payments in one place</h2>
+          <h2>Your sessions, package and payments, all in {APP_NAME}</h2>
           <p>Add this app to your home screen. It works on iPhone, Android and any computer.</p>
           <Link href="/login" className="btn light lg">Log in with your phone</Link>
         </div>
       </section>
 
       <footer className="footer">
-        <span>© {new Date().getFullYear()} {name}</span>
+        <span>© {new Date().getFullYear()} {APP_NAME}{practice ? ` · ${practice}` : ""}</span>
         <Link href="/login">Physio login</Link>
       </footer>
     </div>

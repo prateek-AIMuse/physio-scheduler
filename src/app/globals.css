@@ -214,6 +214,9 @@ th { color: var(--muted); font-weight: 600; border-top: 0; }
 .landing { overflow-x: clip; }
 .hero { position: relative; min-height: min(92dvh, 760px); display: grid; align-items: end; color: #fff; isolation: isolate; }
 .hero .photo { position: absolute; inset: 0; z-index: -2; }
+/* Keep the physio (right of the photo) in frame on narrow screens */
+.hero .photo { background-position: 78% center; }
+@media (min-width: 900px) { .hero .photo { background-position: center; } }
 .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(6 16 30 / 0.15) 0%, rgb(6 16 30 / 0.35) 45%, rgb(6 22 46 / 0.92) 100%), linear-gradient(90deg, rgb(10 31 61 / 0.55), transparent 70%); }
 .hero-nav { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: calc(14px + var(--safe-top)) 20px 14px; z-index: 2; }
 .hero-nav .brand { color: #fff; }
@@ -266,7 +269,7 @@ th { color: var(--muted); font-weight: 600; border-top: 0; }
 .auth { min-height: 100dvh; display: grid; grid-template-columns: 1fr; background: var(--bg); }
 .auth-photo { display: none; }
 .auth-main { display: grid; place-items: center; padding: calc(24px + var(--safe-top)) 16px calc(24px + var(--safe-bottom)); position: relative; isolation: isolate; }
-.auth-main::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 46%; z-index: -1; background: var(--grad-deep); border-radius: 0 0 36px 36px; }
+.auth-main::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 46%; z-index: -1; background: linear-gradient(180deg, rgb(7 24 51 / 0.55), rgb(7 24 51 / 0.88)), url(/images/login.jpg) center 30% / cover, var(--grad-deep); border-radius: 0 0 36px 36px; }
 .auth .card { width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); border: 0; padding: 26px 22px; }
 .auth-brand { display: flex; align-items: center; gap: 10px; color: #fff; margin-bottom: 18px; font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
 .auth-wrap { width: 100%; max-width: 420px; }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AdminNav } from "@/components/admin-nav";
 import { Logo } from "@/components/logo";
+import { APP_NAME } from "@/lib/brand";
 import { requireAdmin } from "@/lib/auth";
 import { getSettings, practiceLabel } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -16,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="shell">
       <header className="top">
         <div className="top-row">
-          <Link href="/admin" className="brand"><Logo /><span>{practiceLabel(s)}<small>Physio scheduler</small></span></Link>
+          <Link href="/admin" className="brand"><Logo /><span>{APP_NAME}<small>{practiceLabel(s)} · Physio</small></span></Link>
           <form action="/auth/signout" method="post"><button className="btn sm">Log out</button></form>
         </div>
         <AdminNav toSend={s.whatsapp_mode === "manual" ? count ?? 0 : 0} />

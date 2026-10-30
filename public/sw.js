@@ -1,6 +1,6 @@
-/* Physio Scheduler service worker: makes the app installable and shows a friendly page when offline.
+/* Movera service worker: makes the app installable and shows a friendly page when offline.
    Pages are always fetched fresh (they hold patient data), so nothing private is stored on the phone. */
-const CACHE = "physio-offline-v1";
+const CACHE = "movera-offline-v1";
 const OFFLINE = "/offline.html";
 
 self.addEventListener("install", (event) => {
