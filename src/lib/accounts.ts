@@ -1,8 +1,8 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import type { PracticeDb } from "@/lib/practice-db";
 import { env } from "@/lib/env";
 import type { Patient } from "@/lib/types";
 
-type Db = ReturnType<typeof createAdminClient>;
+type Db = PracticeDb;
 
 /* Patients log in by phone, but one-time login links need an email on the account. This address
    only identifies the account; nothing is ever sent to it. */

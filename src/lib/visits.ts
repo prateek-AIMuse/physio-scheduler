@@ -1,9 +1,9 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import type { PracticeDb } from "@/lib/practice-db";
 import { clashes, type Location } from "@/lib/scheduler";
 import { addDays, istDay, istInstant } from "@/lib/time";
 import type { Visit } from "@/lib/types";
 
-type Db = ReturnType<typeof createAdminClient>;
+type Db = PracticeDb;
 
 /* The first live visit that would clash with this one (overlap, or too little travel time around a home visit) */
 export async function findClash(db: Db, v: { id?: string; start: Date; end: Date; location: Location }, bufferMinutes: number) {

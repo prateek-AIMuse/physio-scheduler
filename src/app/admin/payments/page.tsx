@@ -3,13 +3,13 @@ import { cancelPayment, markPaymentPaid, newPaymentRequest, updatePaymentAmount 
 import { Flash, type FlashParams } from "@/components/flash";
 import { rupees } from "@/lib/format";
 import { payUrl } from "@/lib/messages";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { formatDay, istDay } from "@/lib/time";
 import type { Patient, PaymentRequest } from "@/lib/types";
 
 export default async function Payments({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
-  const db = createAdminClient();
+  const { db } = await requireAdmin();
   const [{ data: patients }, { data: requests }] = await Promise.all([
     db.from("patients").select("*").order("full_name"),
     db.from("payment_requests").select("*").order("created_at", { ascending: false }).limit(100),

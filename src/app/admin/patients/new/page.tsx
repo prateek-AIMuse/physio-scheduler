@@ -1,11 +1,11 @@
 import { Flash, type FlashParams } from "@/components/flash";
 import { PatientForm } from "@/components/patient-form";
 import { getSettings } from "@/lib/settings";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function NewPatient({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
-  const s = await getSettings(createAdminClient());
+  const s = await getSettings((await requireAdmin()).db);
   return (
     <main className="stack">
       <h1>Add a patient</h1>

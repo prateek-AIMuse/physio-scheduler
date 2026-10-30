@@ -6,7 +6,21 @@ that sees patients at **Dominate Performance** or at their homes.
 Built with Next.js 16, Supabase (login and Postgres) and hosted free on Cloudflare Workers, the same
 setup as the Sound of Muses site.
 
-## What it does
+## Practices, physios and the owner
+
+Movera hosts many practices. Each physio has their own practice; its patients, calendar, packages,
+payments, messages and settings are kept apart. Every query is limited to the signed-in physio's
+practice (`src/lib/practice-db.ts`), and the database refuses rows that point at another practice's
+patient (`supabase/migrations/0002_practices.sql`).
+
+- **Physios sign up** at `/signup` with their name, practice name, mobile, city, optional registration
+  number, email and password. They confirm their email, then wait at `/pending`.
+- **The platform owner** (emails in `ADMIN_EMAILS`) approves, pauses or restores practices at `/owner`.
+  The practice that existed before sign-ups is taken over by the owner on their first login.
+- **Patients** belong to a practice. The same phone number can be a patient of several physios; they
+  switch between them on their page.
+- After logging in, physios and patients are greeted with **"Welcome, <name>"**.
+
 
 **For the physio** (logs in with email and password, `/admin`):
 
@@ -98,12 +112,15 @@ The current photos are free to use under the [Pexels licence](https://www.pexels
 ## Setup
 
 1. **Supabase.** Create a free project at supabase.com. In the SQL editor, run
-   `supabase/migrations/0001_schema.sql`.
+   `supabase/migrations/0001_schema.sql`, then `0002_practices.sql`.
    - Authentication → Users → **Add user**: the physio's email and a password, with *Auto confirm* on.
    - Authentication → URL Configuration: set the Site URL to the app's address and add
      `https://<app-address>/**` to the redirect URLs.
    - Authentication → Providers → Email: set the email OTP / link expiry to **86400** (24 hours) so
      WhatsApp login links last a day.
+   - Keep **Confirm email** on (Authentication → Providers → Email): new physios confirm their address.
+   - For physio sign-ups, set up custom SMTP (Authentication → Emails → SMTP settings, e.g. Resend or
+     Brevo, both free to start). Supabase's built-in sender only sends a few emails an hour.
 2. **Cloudflare.** Create a free account, open Workers & Pages once, create an API token from the
    **Edit Cloudflare Workers** template and note the Account ID.
 3. **GitHub secrets** (repository → Settings → Secrets and variables → Actions):

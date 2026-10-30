@@ -8,15 +8,21 @@ import { normalizePhone } from "@/lib/format";
 import { loginText, paymentText, queueMessage } from "@/lib/messages";
 import { planWeek, type Location } from "@/lib/scheduler";
 import { getSettings } from "@/lib/settings";
-import { createAdminClient } from "@/lib/supabase/server";
+import type { PracticeDb } from "@/lib/practice-db";
 import { addDays, formatDay, formatInstantTime, isDay, istDay, istInstant, mondayOf, parseTime } from "@/lib/time";
 import { findClash } from "@/lib/visits";
 import { insertPreference } from "@/lib/preferences";
 import type { Patient, PaymentRequest, Preference, Visit } from "@/lib/types";
 
+/* Every action works on the signed-in physio's own practice only */
 async function admin() {
-  await requireAdmin();
-  return createAdminClient();
+  return (await requireAdmin()).db;
+}
+
+/* complete_visit and reopen_visit take a visit id, so check it belongs to this practice first */
+async function ownVisit(db: PracticeDb, id: string) {
+  const { data } = await db.from("visits").select("id").eq("id", id).maybeSingle();
+  return Boolean(data);
 }
 const loc = (s: string): Location => (s === "home" ? "home" : "clinic");
 const done = () => revalidatePath("/admin", "layout");
@@ -129,13 +135,13 @@ export async function sendLoginLink(fd: FormData) {
 
 /* ---------- Packages and payments ---------- */
 
-async function createRequest(db: ReturnType<typeof createAdminClient>, r: { patient_id: string; amount: number; description: string; package_id?: string | null }) {
+async function createRequest(db: PracticeDb, r: { patient_id: string; amount: number; description: string; package_id?: string | null }) {
   const { data, error } = await db.from("payment_requests").insert({ ...r, package_id: r.package_id ?? null }).select().single();
   if (error) throw new Error(error.message);
   await queuePaymentMessage(db, data as PaymentRequest);
 }
 
-async function queuePaymentMessage(db: ReturnType<typeof createAdminClient>, r: PaymentRequest) {
+async function queuePaymentMessage(db: PracticeDb, r: PaymentRequest) {
   const [{ data: p }, s] = await Promise.all([db.from("patients").select("*").eq("id", r.patient_id).single(), getSettings(db)]);
   const t = paymentText({ ...r, amount: Number(r.amount) }, p as Patient, s);
   await queueMessage(db, { patient_id: r.patient_id, kind: "payment_request", dedupe_key: `pay:${r.id}`, body: t.body, params: t.params });
@@ -300,7 +306,8 @@ export async function setVisitStatus(fd: FormData) {
 export async function completeVisit(fd: FormData) {
   const db = await admin();
   const s = await getSettings(db);
-  const { data, error } = await db.rpc("complete_visit", { p_visit: str(fd, "id"), p_home_fee: s.home_visit_fee });
+  if (!(await ownVisit(db, str(fd, "id")))) back(fd, "/admin", { error: "Visit not found" });
+  const { data, error } = await db.raw.rpc("complete_visit", { p_visit: str(fd, "id"), p_home_fee: s.home_visit_fee });
   if (error) back(fd, "/admin", { error: error.message });
   const r = data as { visit_no: number | null; total?: number; request_id: string | null };
   let msg = r.visit_no ? `Visit ${r.visit_no} of ${r.total} done` : "Visit done (the patient has no package, so it wasn't counted)";
@@ -315,7 +322,8 @@ export async function completeVisit(fd: FormData) {
 
 export async function reopenVisit(fd: FormData) {
   const db = await admin();
-  const { error } = await db.rpc("reopen_visit", { p_visit: str(fd, "id") });
+  if (!(await ownVisit(db, str(fd, "id")))) back(fd, "/admin/calendar", { error: "Visit not found" });
+  const { error } = await db.raw.rpc("reopen_visit", { p_visit: str(fd, "id") });
   done();
   back(fd, "/admin/calendar", error ? { error: error.message } : { ok: "Visit set back to booked" });
 }

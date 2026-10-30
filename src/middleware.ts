@@ -29,4 +29,4 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/admin/:path*", "/me/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/me/:path*", "/owner/:path*", "/pending"] };

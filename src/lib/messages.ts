@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import type { PracticeDb } from "@/lib/practice-db";
 import { env } from "@/lib/env";
 import { formatPhone, rupees } from "@/lib/format";
 import { clinicLabel, getSettings, practiceLabel } from "@/lib/settings";
@@ -6,7 +6,7 @@ import { addDays, formatDay, formatInstantTime, istDay, istInstant, mondayOf } f
 import { sendTemplate } from "@/lib/whatsapp";
 import type { Message, MessageKind, Patient, PaymentRequest, Settings, Visit } from "@/lib/types";
 
-type Db = ReturnType<typeof createAdminClient>;
+type Db = PracticeDb;
 
 /* Day-before reminders become due at 10 am the day before; the weekly summary at 6 pm on Sunday */
 const REMINDER_HOUR = 10;

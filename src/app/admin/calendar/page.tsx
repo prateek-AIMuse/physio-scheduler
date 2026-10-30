@@ -3,7 +3,7 @@ import { addVisit, approveWeek, clearSuggestions, suggestWeek } from "@/app/admi
 import { Flash } from "@/components/flash";
 import { VisitCard } from "@/components/visit-card";
 import { getSettings } from "@/lib/settings";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { addDays, formatDay, formatTime, isDay, istDay, istInstant, mondayOf, parseTime, weekdayOf } from "@/lib/time";
 import type { Availability, Patient, Visit } from "@/lib/types";
 
@@ -13,7 +13,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
   const today = istDay(now);
   const week = mondayOf(isDay(w) ? w : today);
   const back = `/admin/calendar?week=${week}`;
-  const db = createAdminClient();
+  const { db } = await requireAdmin();
   const [s, { data: patients }, { data: visits }, { data: avail }] = await Promise.all([
     getSettings(db),
     db.from("patients").select("*").order("full_name"),

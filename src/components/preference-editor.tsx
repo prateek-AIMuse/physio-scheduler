@@ -2,8 +2,8 @@ import { formatTime, parseTime, WEEKDAYS, WEEKDAYS_SHORT } from "@/lib/time";
 import type { Preference } from "@/lib/types";
 
 /* The list of times that suit a patient, with a form to add more. Used by the physio and by the patient. */
-export function PreferenceEditor({ prefs, patientId, back, add, remove, clinicName }: {
-  prefs: Preference[]; patientId?: string; back: string; clinicName: string;
+export function PreferenceEditor({ prefs, patientId, practiceId, back, add, remove, clinicName }: {
+  prefs: Preference[]; patientId?: string; practiceId?: string; back: string; clinicName: string;
   add: (fd: FormData) => Promise<void>; remove: (fd: FormData) => Promise<void>;
 }) {
   const sorted = [...prefs].sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time));
@@ -17,6 +17,7 @@ export function PreferenceEditor({ prefs, patientId, back, add, remove, clinicNa
                 {x.location && <span className={`chip ${x.location}`} style={{ marginLeft: 8 }}>{x.location === "home" ? "Home" : clinicName}</span>}</span>
               <form action={remove} className="inline">
                 <input type="hidden" name="id" value={x.id} /><input type="hidden" name="back" value={back} />
+                {practiceId && <input type="hidden" name="practice" value={practiceId} />}
                 <button className="btn sm danger">Remove</button>
               </form>
             </li>
@@ -27,6 +28,7 @@ export function PreferenceEditor({ prefs, patientId, back, add, remove, clinicNa
         <summary>+ Add a preferred time</summary>
         <form action={add} className="stack-sm">
           {patientId && <input type="hidden" name="patient_id" value={patientId} />}
+          {practiceId && <input type="hidden" name="practice" value={practiceId} />}
           <input type="hidden" name="back" value={back} />
           <fieldset className="row" style={{ border: 0, padding: 0, margin: 0 }}>
             <legend className="small muted" style={{ marginBottom: 4 }}>Days</legend>
