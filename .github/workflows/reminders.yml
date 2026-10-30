@@ -1,0 +1,23 @@
+# Every hour, asks the app to queue day-before reminders and Sunday weekly schedules (and, in automatic
+# WhatsApp mode, to send what's due). Needs repository secrets NEXT_PUBLIC_SITE_URL and CRON_SECRET,
+# the same CRON_SECRET as the Worker's. Without them it does nothing.
+
+name: WhatsApp reminders
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Run the reminders job
+        env:
+          SITE: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$SITE" ] || [ -z "$CRON_SECRET" ]; then echo "::notice::Reminders not set up yet (secrets missing)"; exit 0; fi
+          curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" "$SITE/api/cron"
