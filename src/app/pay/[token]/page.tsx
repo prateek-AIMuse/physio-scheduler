@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { Metadata } from "next";
+import { Logo } from "@/components/logo";
 import { rupees } from "@/lib/format";
 import { getSettings, practiceLabel } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -26,11 +27,11 @@ export default async function Pay({ params }: { params: Promise<{ token: string 
 
   return (
     <main className="auth">
+      <div className="auth-main">
+      <div className="auth-wrap">
+      <p className="auth-brand" style={{ justifyContent: "center" }}><Logo />{practiceLabel(s)}</p>
       <div className="card stack" style={{ textAlign: "center" }}>
-        <div>
-          <p className="muted small">{practiceLabel(s)}</p>
-          <h1>{first ? `Hi ${first}` : "Payment"}</h1>
-        </div>
+        <h1>{first ? `Hi ${first}` : "Payment"}</h1>
         <p className="amount">{rupees(amount)}</p>
         {r.description && <p className="muted">{r.description}</p>}
         {r.status === "paid" && <p className="notice">Paid. Thank you!</p>}
@@ -42,6 +43,8 @@ export default async function Pay({ params }: { params: Promise<{ token: string 
           <p className="small">UPI ID: <b>{s.upi_id}</b>{s.upi_payee_name && <><br />{s.upi_payee_name}</>}</p>
           <p className="small muted">After you pay, your physio confirms it. No need to send a screenshot unless asked.</p>
         </>}
+      </div>
+      </div>
       </div>
     </main>
   );

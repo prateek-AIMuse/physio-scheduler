@@ -40,8 +40,8 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
       <Flash {...flash} />
 
       <div className="grid2">
-        <div className="card"><p className="muted small">Visits today</p><p className="stat">{todays.filter((v) => v.status !== "cancelled").length}</p></div>
-        <div className="card"><p className="muted small">Payments waiting</p><p className="stat">{rupees(owed)}</p><Link href="/admin/payments" className="small">{pending?.length ?? 0} request{pending?.length === 1 ? "" : "s"}</Link></div>
+        <div className="card stat-card"><p className="muted small">Visits today</p><p className="stat">{todays.filter((v) => v.status !== "cancelled").length}</p></div>
+        <div className="card stat-card"><p className="muted small">Payments waiting</p><p className="stat">{rupees(owed)}</p><Link href="/admin/payments" className="small">{pending?.length ?? 0} request{pending?.length === 1 ? "" : "s"}</Link></div>
       </div>
 
       {!!proposed && <p className="notice warn">{proposed} suggested visit{proposed === 1 ? " is" : "s are"} waiting for your approval. <Link href="/admin/calendar">Review in Calendar</Link></p>}
