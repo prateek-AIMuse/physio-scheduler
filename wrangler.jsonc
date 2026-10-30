@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "physio-scheduler",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  // Keep variables added in the Cloudflare dashboard (such as ADMIN_EMAILS) when GitHub deploys
+  "keep_vars": true
+  // Secret keys are set with `npx wrangler secret put NAME` or in the dashboard, never in this file.
+}
