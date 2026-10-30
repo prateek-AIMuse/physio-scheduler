@@ -62,6 +62,34 @@ schedule** (Sunday 6 pm, for the coming week), **payment requests**, and **login
 - **Automatic mode** (later). Needs a WhatsApp Business number on Meta's WhatsApp Cloud API. See
   *Switching on automatic WhatsApp* below.
 
+## Phones and tablets
+
+The app works in Safari on iPhone and iPad and in Chrome on Android, as well as on any computer, and can
+be installed to the home screen like an app (`src/app/manifest.ts`, icons in `public/icons`):
+
+- **Android:** patients see an **Install** button on their page (or Chrome menu → *Add to Home screen*).
+- **iPhone:** patients see a note to tap **Share → Add to Home Screen**.
+
+Installed, it opens full-screen with its own icon and a bottom tab bar on phones. `public/sw.js`
+shows an offline page when there's no signal; it never stores pages, so no patient data is kept on
+the phone.
+
+## Photos
+
+Photos live in `public/images` with these names:
+
+| File | Where it shows |
+| --- | --- |
+| `hero.jpg` | Home page header, patient page banner |
+| `clinic.jpg` | Home page, clinic card |
+| `home-visit.jpg` | Home page, home-visit card |
+| `rehab.jpg` | Home page, the band near the bottom |
+| `login.jpg` | Login page (beside the form on wide screens) |
+
+Use landscape photos about 1600–2000 px wide, saved as JPEG at around 200–400 KB. Every photo sits on
+the blue-and-teal gradient, so a missing file still looks deliberate. Only use photos you have the
+rights to: your own, or free-licence ones (Unsplash's free photos, not Unsplash+, or Pexels).
+
 ## Setup
 
 1. **Supabase.** Create a free project at supabase.com. In the SQL editor, run

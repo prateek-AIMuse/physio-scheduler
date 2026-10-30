@@ -1,5 +1,8 @@
 import { addMyPreference, deleteMyPreference } from "@/app/me/actions";
 import { Flash, type FlashParams } from "@/components/flash";
+import { InstallPrompt } from "@/components/install-prompt";
+import { Logo } from "@/components/logo";
+import { Photo } from "@/components/photo";
 import { PreferenceEditor } from "@/components/preference-editor";
 import { requirePatient } from "@/lib/auth";
 import { rupees } from "@/lib/format";
@@ -29,11 +32,19 @@ export default async function MyPage({ searchParams }: { searchParams: FlashPara
     <div className="shell">
       <header className="top">
         <div className="top-row">
-          <span className="brand">{practiceLabel(s)}<small>Hi, {patient.full_name.split(" ")[0]}</small></span>
+          <span className="brand"><Logo /><span>{practiceLabel(s)}<small>Your physio sessions</small></span></span>
           <form action="/auth/signout" method="post"><button className="btn sm">Log out</button></form>
         </div>
       </header>
       <main className="stack">
+        <section className="banner">
+          <Photo name="hero" />
+          <div className="banner-body">
+            <h1>Hi {patient.full_name.split(" ")[0]}</h1>
+            <p>{visits?.length ? `Next session: ${formatDay(istDay(new Date(visits[0].starts_at)), true)} at ${formatInstantTime(new Date(visits[0].starts_at))}${visits[0].location === "home" ? ", at home" : `, ${clinic}`}` : "Add the times that suit you below, and your physio will plan your sessions."}</p>
+          </div>
+        </section>
+        <InstallPrompt />
         <Flash {...flash} />
         {((requests ?? []) as PaymentRequest[]).map((r) => (
           <a key={r.id} href={payUrl(r)} className="notice warn" style={{ textDecoration: "none", color: "inherit" }}>
