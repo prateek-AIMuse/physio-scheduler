@@ -10,7 +10,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://physio-scheduler.soundofmuses.workers.dev"),
   title: { default: `${APP_NAME} · ${APP_TAGLINE}`, template: `%s · ${APP_NAME}` },
-  description: "Book physiotherapy at Dominate Performance or at home, keep track of your sessions, and get reminders on WhatsApp.",
+  description: "Scheduling for physiotherapists and their patients: sessions at the clinic or at home, prepaid packages, UPI payments and WhatsApp reminders.",
   applicationName: APP_NAME,
   robots: { index: false, follow: false },
   /* Installs to the home screen like an app on iPhone and Android */

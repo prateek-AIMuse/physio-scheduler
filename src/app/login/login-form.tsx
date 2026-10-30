@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { browserClient } from "@/lib/supabase/browser";
 import { normalizePhone } from "@/lib/format";
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, initialTab = "patient" }: { next: string; initialTab?: "patient" | "physio" }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"patient" | "physio">("patient");
+  const [tab, setTab] = useState<"patient" | "physio">(initialTab);
   const [phone, setPhone] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -26,7 +26,7 @@ export function LoginForm({ next }: { next: string }) {
     if (!digits) throw new Error("Enter your mobile number, e.g. 98765 43210");
     const { error } = await browserClient().auth.signInWithOtp({ phone: `+${digits}`, options: { shouldCreateUser: false } });
     if (error) throw new Error(/signups? not allowed|not found/i.test(error.message)
-      ? "This number isn't on the patient list. Ask your physio to add it."
+      ? "This number isn't on a patient list. Ask your physio to add it."
       : /provider|sms|disabled/i.test(error.message)
       ? "Text-message codes aren't switched on yet. Ask your physio to send you a login link on WhatsApp."
       : error.message);
