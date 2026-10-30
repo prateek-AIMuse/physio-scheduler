@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const token_hash = searchParams.get("token_hash");
-  const type = (searchParams.get("type") ?? "magiclink") as EmailOtpType;
+  const type = (searchParams.get("type") ?? "email") as EmailOtpType;
   if (token_hash) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });

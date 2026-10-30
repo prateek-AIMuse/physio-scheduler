@@ -51,5 +51,5 @@ export async function loginLink(db: Db, p: Patient): Promise<string> {
   const email = u.user?.email ?? placeholderEmail(p);
   const { data, error } = await db.auth.admin.generateLink({ type: "magiclink", email });
   if (error || !data.properties?.hashed_token) throw new Error(`Couldn't make a login link: ${error?.message ?? "no token"}`);
-  return `${env.siteUrl}/auth/confirm?token_hash=${data.properties.hashed_token}&type=magiclink`;
+  return `${env.siteUrl}/auth/confirm?token_hash=${data.properties.hashed_token}&type=email`;
 }
