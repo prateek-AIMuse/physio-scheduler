@@ -1,6 +1,6 @@
-# Physio Scheduler
+# Movera
 
-Scheduling, prepaid packages, UPI payment requests and WhatsApp reminders for a one-physio practice
+*Physio, planned around you.* Scheduling, prepaid packages, UPI payment requests and WhatsApp reminders for a one-physio practice
 that sees patients at **Dominate Performance** or at their homes.
 
 Built with Next.js 16, Supabase (login and Postgres) and hosted free on Cloudflare Workers, the same
@@ -89,6 +89,11 @@ Photos live in `public/images` with these names:
 Use landscape photos about 1600–2000 px wide, saved as JPEG at around 200–400 KB. Every photo sits on
 the blue-and-teal gradient, so a missing file still looks deliberate. Only use photos you have the
 rights to: your own, or free-licence ones (Unsplash's free photos, not Unsplash+, or Pexels).
+
+The current photos are free to use under the [Pexels licence](https://www.pexels.com/license/):
+`hero.jpg` [5793972](https://www.pexels.com/photo/5793972/), `clinic.jpg` [5793954](https://www.pexels.com/photo/5793954/),
+`rehab.jpg` [5794038](https://www.pexels.com/photo/5794038/), `login.jpg` [5794014](https://www.pexels.com/photo/5794014/)
+(by Yan Krukau) and `home-visit.jpg` [7551627](https://www.pexels.com/photo/7551627/) (by Kampus Production).
 
 ## Setup
 

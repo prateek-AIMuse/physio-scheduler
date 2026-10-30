@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ServiceWorker } from "@/components/service-worker";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -8,12 +9,12 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://physio-scheduler.soundofmuses.workers.dev"),
-  title: { default: "Physio Scheduler", template: "%s · Physio Scheduler" },
+  title: { default: `${APP_NAME} · ${APP_TAGLINE}`, template: `%s · ${APP_NAME}` },
   description: "Book physiotherapy at Dominate Performance or at home, keep track of your sessions, and get reminders on WhatsApp.",
-  applicationName: "Physio Scheduler",
+  applicationName: APP_NAME,
   robots: { index: false, follow: false },
   /* Installs to the home screen like an app on iPhone and Android */
-  appleWebApp: { capable: true, title: "Physio", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   icons: {
     icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }, { url: "/icons/icon.svg", type: "image/svg+xml" }],
