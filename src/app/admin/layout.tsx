@@ -1,7 +1,4 @@
-import Link from "next/link";
-import { AdminNav } from "@/components/admin-nav";
-import { Logo } from "@/components/logo";
-import { APP_NAME } from "@/lib/brand";
+import { AdminHeader } from "@/components/admin-header";
 import { requireAdmin } from "@/lib/auth";
 import { getSettings, practiceLabel } from "@/lib/settings";
 
@@ -13,16 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ]);
   return (
     <div className="shell">
-      <header className="top">
-        <div className="top-row">
-          <Link href="/admin" className="brand"><Logo /><span>{APP_NAME}<small>{practiceLabel(s)} · Physio</small></span></Link>
-          <div className="row">
-            {owner && <Link href="/owner" className="btn sm">Owner</Link>}
-            <form action="/auth/signout" method="post"><button className="btn sm">Log out</button></form>
-          </div>
-        </div>
-        <AdminNav toSend={s.whatsapp_mode === "manual" ? count ?? 0 : 0} />
-      </header>
+      <AdminHeader practice={practiceLabel(s)} owner={owner} toSend={s.whatsapp_mode === "manual" ? count ?? 0 : 0} />
       {children}
     </div>
   );

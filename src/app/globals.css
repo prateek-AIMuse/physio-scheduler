@@ -60,7 +60,7 @@ h1, h2, h3 { margin: 0; line-height: 1.15; letter-spacing: -0.02em; font-family:
 h1 { font-size: 1.6rem; font-weight: 800; }
 h2 { font-size: 1.12rem; font-weight: 700; }
 h3 { font-size: 1rem; font-weight: 700; }
-p { margin: 0; }
+p { margin: 0; overflow-wrap: anywhere; }
 a { color: var(--accent); }
 img { max-width: 100%; display: block; }
 :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 8px; }
@@ -75,12 +75,15 @@ button, a, input, select, textarea, label { touch-action: manipulation; }
 }
 .top::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 8px; }
-.brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; text-decoration: none; color: var(--ink); line-height: 1.15; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; font-family: var(--display); font-weight: 800; text-decoration: none; color: var(--ink); line-height: 1.15; }
+.brand > span { min-width: 0; }
+.top-row .brand small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-actions { flex: none; flex-wrap: nowrap; }
 .brand small { display: block; font-family: var(--font); font-weight: 500; color: var(--muted); font-size: 0.74rem; letter-spacing: 0; }
 .logo { width: 34px; height: 34px; flex: none; border-radius: 10px; background: var(--grad); display: grid; place-items: center; box-shadow: var(--shadow); }
 .logo svg { width: 20px; height: 20px; }
-.nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; -webkit-overflow-scrolling: touch; }
-.nav::-webkit-scrollbar { display: none; }
+/* The top menu wraps onto a second line when it doesn't fit, so no section is ever hidden */
+.nav { display: flex; flex-wrap: wrap; gap: 2px 4px; margin: 0 -12px; }
 .nav a { position: relative; padding: 9px 12px; text-decoration: none; color: var(--muted); white-space: nowrap; font-weight: 600; font-size: 0.92rem; transition: color 0.2s; }
 .nav a::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--grad); transform: scaleX(0); transition: transform 0.25s ease; }
 .nav a[aria-current="page"] { color: var(--ink); }
@@ -88,18 +91,34 @@ button, a, input, select, textarea, label { touch-action: manipulation; }
 .count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px; background: var(--bad); color: #fff; font-size: 0.72rem; line-height: 18px; text-align: center; }
 
 /* Phone tab bar, like a native app */
-.tabbar { display: none; }
+.tabbar, .more-sheet, .sheet-backdrop { display: none; }
 @media (max-width: 720px) {
-  .nav .desktop-tab { display: none; }
+  /* Phones: the bottom tab bar and its More sheet replace the top menu and buttons */
+  .top .nav, .top .top-actions { display: none; }
   .tabbar {
     display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; z-index: 30; left: 10px; right: 10px;
     bottom: calc(10px + var(--safe-bottom)); padding: 6px; border-radius: 22px;
     background: color-mix(in srgb, var(--card) 86%, transparent); backdrop-filter: saturate(1.8) blur(18px); -webkit-backdrop-filter: saturate(1.8) blur(18px);
     border: 1px solid var(--line); box-shadow: var(--shadow-lg);
   }
-  .tabbar a { position: relative; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 16px; color: var(--muted); text-decoration: none; font-size: 0.68rem; font-weight: 600; min-height: 48px; transition: background 0.2s, color 0.2s; }
+  .tabbar a, .tabbar .tab-more { position: relative; border: 0; background: none; font: inherit; cursor: pointer; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 16px; color: var(--muted); text-decoration: none; font-size: 0.68rem; font-weight: 600; min-height: 48px; transition: background 0.2s, color 0.2s; }
   .tabbar a svg { width: 22px; height: 22px; }
-  .tabbar a[aria-current="page"] { color: #fff; background: var(--grad); box-shadow: var(--shadow); }
+  .tabbar a[aria-current="page"], .tabbar .tab-more.active { color: #fff; background: var(--grad); box-shadow: var(--shadow); }
+  .tabbar .tab-more { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 16px; color: var(--muted); font-size: 0.68rem; font-weight: 600; min-height: 48px; }
+  .tabbar .tab-more svg { width: 22px; height: 22px; }
+  .more-sheet {
+    position: fixed; z-index: 31; left: 10px; right: 10px; bottom: calc(84px + var(--safe-bottom)); padding: 8px; border-radius: 20px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px;
+    background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow-lg);
+    transform: translateY(12px); opacity: 0; visibility: hidden; transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+  }
+  .more-sheet.open { transform: none; opacity: 1; visibility: visible; }
+  .more-sheet a, .more-sheet button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 12px; border-radius: 12px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; text-decoration: none; text-align: left; cursor: pointer; }
+  .more-sheet a:hover, .more-sheet button:hover, .more-sheet a[aria-current="page"] { background: var(--bg); }
+  .more-sheet svg { width: 20px; height: 20px; color: var(--teal); flex: none; }
+  .more-sheet .danger, .more-sheet .danger svg { color: var(--bad); }
+  .more-sheet form { display: contents; }
+  .sheet-backdrop { display: block; position: fixed; inset: 0; z-index: 29; border: 0; background: rgb(6 16 30 / 0.35); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
   .tabbar .count { position: absolute; top: 2px; right: 14%; margin: 0; }
 }
 @media (min-width: 721px) { .mobile-only { display: none !important; } }
@@ -193,7 +212,7 @@ details[open] > summary { margin-bottom: 10px; }
 .counter span { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--teal); transition: transform 0.3s; }
 .counter span.used { background: var(--grad); border-color: transparent; }
 
-.msg-body { white-space: pre-wrap; background: var(--bg); border-radius: 12px; padding: 10px 12px; font-size: 0.88rem; border-left: 3px solid #1FA855; }
+.msg-body { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border-radius: 12px; padding: 10px 12px; font-size: 0.88rem; border-left: 3px solid #1FA855; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th, td { text-align: left; padding: 9px 6px; border-top: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; border-top: 0; }
