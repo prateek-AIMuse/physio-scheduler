@@ -85,3 +85,19 @@ export async function cancelSession(fd: FormData) {
   revalidatePath("/me");
   back(fd, home, { ok: "Session cancelled. It won't count against your package." });
 }
+
+/* ---------- Home exercises ---------- */
+
+/* Ticks or unticks today for one of the patient's own exercises (today in the practice's time zone) */
+export async function toggleExerciseDone(fd: FormData) {
+  const { patient, db } = await requirePatient(str(fd, "practice") || undefined);
+  const home = `/me?practice=${patient.practice_id}#exercises`;
+  const { data: a } = await db.from("patient_exercises").select("id").eq("id", str(fd, "id")).eq("patient_id", patient.id).eq("active", true).maybeSingle();
+  if (!a) back(fd, home, { error: "Exercise not found" });
+  const day = zone((await getSettings(db)).time_zone).day(new Date());
+  const { data: existing } = await db.from("exercise_logs").select("id").eq("patient_exercise_id", a.id).eq("day", day).maybeSingle();
+  if (existing) await db.from("exercise_logs").delete().eq("id", existing.id);
+  else await db.from("exercise_logs").insert({ patient_id: patient.id, patient_exercise_id: a.id, day });
+  revalidatePath("/me");
+  back(fd, home, { ok: existing ? "Unticked for today" : "Well done! Ticked off for today." });
+}

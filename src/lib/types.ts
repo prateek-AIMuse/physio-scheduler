@@ -113,3 +113,10 @@ export const LOCATION_LABEL: Record<Location, string> = { clinic: "Clinic", home
 export const STATUS_LABEL: Record<VisitStatus, string> = {
   proposed: "Suggested", scheduled: "Booked", completed: "Done", cancelled: "Cancelled", no_show: "No-show",
 };
+
+export type Exercise = { id: string; practice_id: string; name: string; body_area: string; instructions: string; video_url: string; created_at: string };
+export type PatientExercise = {
+  id: string; patient_id: string; exercise_id: string; sets: number; reps: number; hold_seconds: number | null;
+  times_per_day: number; notes: string; active: boolean; created_at: string;
+};
+export type ExerciseLog = { id: string; patient_exercise_id: string; patient_id: string; day: string };

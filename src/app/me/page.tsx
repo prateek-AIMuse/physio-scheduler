@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { addMyPreference, cancelSession, deleteMyPreference } from "@/app/me/actions";
+import { addMyPreference, cancelSession, deleteMyPreference, toggleExerciseDone } from "@/app/me/actions";
 import { changeable } from "@/lib/booking";
 import { Flash } from "@/components/flash";
 import { InstallPrompt } from "@/components/install-prompt";
@@ -12,8 +12,8 @@ import { money } from "@/lib/format";
 import { payUrl } from "@/lib/messages";
 import { packageStates } from "@/lib/packages";
 import { getSettings, practiceLabel } from "@/lib/settings";
-import { formatDay, zone } from "@/lib/time";
-import type { Package, PaymentRequest, Preference, Visit } from "@/lib/types";
+import { addDays, formatDay, zone } from "@/lib/time";
+import type { Package, PaymentRequest, Preference, Visit, Exercise, ExerciseLog, PatientExercise } from "@/lib/types";
 
 export default async function MyPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string; practice?: string }> }) {
   const { practice, ...flash } = await searchParams;
@@ -38,6 +38,16 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
   const clinic = s.clinic_name || "the clinic";
   const z = zone(s.time_zone);
   const now = new Date();
+  /* Home exercise programme and the last 7 days ticked */
+  const today = z.day(now);
+  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+  const [{ data: assigned }, { data: library }, { data: logs }] = await Promise.all([
+    db.from("patient_exercises").select("*").eq("patient_id", patient.id).eq("active", true).order("created_at"),
+    db.from("exercises").select("*"),
+    db.from("exercise_logs").select("*").eq("patient_id", patient.id).gte("day", week[0]),
+  ]);
+  const exById = new Map(((library ?? []) as Exercise[]).map((e) => [e.id, e]));
+  const doneOn = (aid: string, day: string) => ((logs ?? []) as ExerciseLog[]).some((l) => l.patient_exercise_id === aid && l.day === day);
 
   return (
     <div className="shell">
@@ -106,6 +116,45 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
           ) : <p className="empty">{s.self_booking ? "Nothing booked yet. Book a session, or add the times that suit you below." : "Nothing booked yet. Your physio plans the week ahead using the times below."}</p>}
           {s.self_booking && <p className="small muted" style={{ marginTop: 10 }}>You can move or cancel a session up to {s.booking_notice_hours} hours before it starts.</p>}
         </section>
+
+        {!!assigned?.length && (
+          <section className="card" id="exercises">
+            <h2>Your exercises</h2>
+            <ul className="list">
+              {(assigned as PatientExercise[]).map((a) => {
+                const e = exById.get(a.exercise_id);
+                const doneToday = doneOn(a.id, today);
+                return (
+                  <li key={a.id} className="stack-sm">
+                    <div className="row between">
+                      <div>
+                        <p className="strong">{e?.name ?? "Exercise"}</p>
+                        <p className="small muted">{a.sets} sets × {a.reps} reps{a.hold_seconds ? `, hold ${a.hold_seconds} seconds` : ""}{a.times_per_day > 1 ? `, ${a.times_per_day} times a day` : ""}</p>
+                      </div>
+                      <form action={toggleExerciseDone} className="inline">
+                        <input type="hidden" name="id" value={a.id} />
+                        <input type="hidden" name="practice" value={patient.practice_id} />
+                        <input type="hidden" name="back" value={`/me?practice=${patient.practice_id}#exercises`} />
+                        <button className={`btn sm ${doneToday ? "" : "primary"}`}>{doneToday ? "✓ Done today" : "Mark done"}</button>
+                      </form>
+                    </div>
+                    {a.notes && <p className="small notice warn">{a.notes}</p>}
+                    {(e?.instructions || e?.video_url) && (
+                      <details>
+                        <summary>How to do it</summary>
+                        {e.instructions && <p className="small" style={{ whiteSpace: "pre-wrap" }}>{e.instructions}</p>}
+                        {e.video_url && <a className="btn sm" style={{ marginTop: 8 }} href={e.video_url} target="_blank" rel="noreferrer">Watch the video</a>}
+                      </details>
+                    )}
+                    <div className="row" aria-label="Last 7 days">
+                      {week.map((d) => <span key={d} title={formatDay(d)} className={`chip ${doneOn(a.id, d) ? "completed" : ""}`}>{formatDay(d).split(" ")[0].replace(",", "")}</span>)}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         <section className="card">
           <h2>Your package</h2>
