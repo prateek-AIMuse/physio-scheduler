@@ -63,6 +63,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
           <div className="banner-body">
             <p className="small" style={{ opacity: 0.8 }}>{practiceLabel(s)}</p>
             <h1>Welcome, {patient.full_name}</h1>
+            {patient.condition && <p className="small" style={{ opacity: 0.85 }}>Treatment for: {patient.condition}</p>}
             <p>{visits?.length ? `Next session: ${formatDay(z.day(new Date(visits[0].starts_at)), true)} at ${z.time(new Date(visits[0].starts_at))}${visits[0].location === "home" ? ", at home" : `, ${clinic}`}` : "Add the times that suit you below, and your physio will plan your sessions."}</p>
           </div>
         </section>
