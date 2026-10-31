@@ -4,6 +4,7 @@ import { Flash } from "@/components/flash";
 import { Logo } from "@/components/logo";
 import { Photo } from "@/components/photo";
 import { APP_NAME } from "@/lib/brand";
+import { COUNTRIES } from "@/lib/regions";
 
 export const metadata = { title: "Physio sign-up" };
 
@@ -37,9 +38,12 @@ export default async function SignUp({ searchParams }: { searchParams: Promise<{
                   <input type="hidden" name="back" value="/signup" />
                   <label>Your full name<input name="physio_name" required autoComplete="name" placeholder="Dr Priya Shah" /></label>
                   <label>Practice name<input name="practice_name" placeholder="e.g. Shah Physio Care (optional)" /></label>
+                  <label>Country<select name="country" defaultValue="91">
+                    {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                  </select></label>
                   <div className="fields">
                     <label>Mobile number<input name="phone" type="tel" inputMode="tel" autoComplete="tel" required placeholder="98765 43210" /></label>
-                    <label>City<input name="city" autoComplete="address-level2" placeholder="Mumbai" /></label>
+                    <label>City<input name="city" autoComplete="address-level2" placeholder="e.g. Mumbai" /></label>
                   </div>
                   <label>Registration number (optional)<input name="registration_no" placeholder="e.g. state council or IAP number" /></label>
                   <label>Email<input name="email" type="email" required autoComplete="email" /></label>

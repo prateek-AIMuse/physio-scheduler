@@ -22,6 +22,8 @@ patient (`supabase/migrations/0002_practices.sql`).
 - After logging in, physios and patients are greeted with **"Welcome, <name>"**.
 
 
+## What it does
+
 **For the physio** (logs in with email and password, `/admin`):
 
 | Page | What's there |
@@ -34,7 +36,8 @@ patient (`supabase/migrations/0002_practices.sql`).
 | Hours | The weekly free slots visits can go in |
 | Settings | Clinic name and map link, UPI ID, home-visit fee, travel time around home visits, WhatsApp mode |
 
-**For patients** (log in with their phone number, `/me`): their next sessions, the package counter
+**For patients** (log in with their phone number, `/me`): their next sessions (and, if the physio switches
+on self-booking in Settings, booking, moving and cancelling them up to a set number of hours ahead), the package counter
 (e.g. 4 of 6 done), anything due with a Pay button, and the days and times that suit them.
 
 ### How the week gets planned
@@ -76,6 +79,19 @@ schedule** (Sunday 6 pm, for the coming week), **payment requests**, and **login
 - **Automatic mode** (later). Needs a WhatsApp Business number on Meta's WhatsApp Cloud API. See
   *Switching on automatic WhatsApp* below.
 
+## More features
+
+- **Time zones, currencies and countries:** each practice works in its own time zone (daylight saving
+  included), currency and phone country (Settings → Region). Sign-up sets them from the physio's country.
+- **Patient self-booking:** with Settings → Patient self-booking on, patients book open times, and move or
+  cancel sessions up to a set number of hours ahead. The physio sees their changes on Today.
+- **Home exercise programmes:** an exercise library per practice (with a starter set and optional video
+  links), programmes with sets, reps, hold and times a day for each patient, and a daily Done tick for
+  patients. The physio sees how many of the last 7 days each exercise was done.
+- **Online payments:** each practice can connect its own Razorpay (India) and/or Stripe (worldwide)
+  account in Settings → Online payments. Patients get a Pay online button; the gateway's webhook
+  (signature-checked) marks the request paid. UPI and manual "Mark paid" still work.
+
 ## Phones and tablets
 
 The app works in Safari on iPhone and iPad and in Chrome on Android, as well as on any computer, and can
@@ -112,7 +128,8 @@ The current photos are free to use under the [Pexels licence](https://www.pexels
 ## Setup
 
 1. **Supabase.** Create a free project at supabase.com. In the SQL editor, run
-   `supabase/migrations/0001_schema.sql`, then `0002_practices.sql`.
+   `supabase/migrations/0001_schema.sql`, then the others in number order
+   (`0002_practices.sql`, `0003_regions.sql`, …). Each runs once.
    - Authentication → Users → **Add user**: the physio's email and a password, with *Auto confirm* on.
    - Authentication → URL Configuration: set the Site URL to the app's address and add
      `https://<app-address>/**` to the redirect URLs.
@@ -173,5 +190,8 @@ npm run lint
 npm run preview              # Cloudflare build served by Wrangler
 ```
 
-All times are India time (Asia/Kolkata). Row-level security is on for every table with no policies:
+Each practice sets its time zone, currency and phone country under Settings → Region (new
+practices get them from the country chosen at sign-up). Days, reminders and the weekly plan use that
+time zone, daylight saving included. UPI is offered for rupee payments; other currencies show the
+practice's payment instructions. Row-level security is on for every table with no policies:
 browsers can't read the database directly; the server checks who's asking and uses the service role key.

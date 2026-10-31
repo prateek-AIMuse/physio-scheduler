@@ -1,16 +1,16 @@
 import { retryMessage, skipMessage } from "@/app/admin/actions";
 import { SendButton } from "@/components/send-button";
 import { formatPhone } from "@/lib/format";
-import { formatDay, formatInstantTime, istDay } from "@/lib/time";
+import { formatDay, type Zone } from "@/lib/time";
 import type { Message, MessageKind, Patient } from "@/lib/types";
 
 export const KIND_LABEL: Record<MessageKind, string> = {
   day_reminder: "Day-before reminder", weekly_summary: "Weekly schedule", payment_request: "Payment request", login_link: "Login link", custom: "Message",
 };
 
-const at = (iso: string) => `${formatDay(istDay(new Date(iso)))}, ${formatInstantTime(new Date(iso))}`;
+const at = (iso: string, z: Zone) => `${formatDay(z.day(new Date(iso)))}, ${z.time(new Date(iso))}`;
 
-export function MessageItem({ m, p, manual, back, now }: { m: Message; p: Patient | undefined; manual: boolean; back: string; now: Date }) {
+export function MessageItem({ m, p, manual, back, now, z }: { m: Message; p: Patient | undefined; manual: boolean; back: string; now: Date; z: Zone }) {
   const due = Date.parse(m.due_at) <= now.getTime();
   return (
     <div className="stack-sm">
@@ -21,7 +21,7 @@ export function MessageItem({ m, p, manual, back, now }: { m: Message; p: Patien
           {m.status !== "pending" && <span className={`chip ${m.status}`}>{m.status}</span>}
         </div>
         <span className="small muted">
-          {m.status === "sent" && m.sent_at ? `Sent ${at(m.sent_at)}` : m.status === "pending" && !due ? `Due ${at(m.due_at)}` : p ? formatPhone(p.phone) : ""}
+          {m.status === "sent" && m.sent_at ? `Sent ${at(m.sent_at, z)}` : m.status === "pending" && !due ? `Due ${at(m.due_at, z)}` : p ? formatPhone(p.phone) : ""}
         </span>
       </div>
       <p className="msg-body">{m.body}</p>

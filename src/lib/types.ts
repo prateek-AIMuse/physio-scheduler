@@ -14,6 +14,13 @@ export type Settings = {
   home_visit_fee: number;
   travel_buffer_minutes: number;
   whatsapp_mode: "manual" | "cloud_api";
+  time_zone: string;
+  currency: string;
+  country_code: string;
+  payment_instructions: string;
+  self_booking: boolean;
+  booking_notice_hours: number;
+  booking_window_days: number;
 };
 
 export type Practice = {
@@ -70,6 +77,8 @@ export type Visit = {
   visit_no: number | null;
   home_fee: number;
   completed_at: string | null;
+  booked_by?: "physio" | "patient";
+  changed_at?: string | null;
 };
 
 export type PaymentRequest = {
@@ -83,6 +92,8 @@ export type PaymentRequest = {
   from_visit: string | null;
   created_at: string;
   paid_at: string | null;
+  gateway?: "razorpay" | "stripe" | null;
+  paid_via?: string | null;
 };
 
 export type Message = {
@@ -104,3 +115,10 @@ export const LOCATION_LABEL: Record<Location, string> = { clinic: "Clinic", home
 export const STATUS_LABEL: Record<VisitStatus, string> = {
   proposed: "Suggested", scheduled: "Booked", completed: "Done", cancelled: "Cancelled", no_show: "No-show",
 };
+
+export type Exercise = { id: string; practice_id: string; name: string; body_area: string; instructions: string; video_url: string; created_at: string };
+export type PatientExercise = {
+  id: string; patient_id: string; exercise_id: string; sets: number; reps: number; hold_seconds: number | null;
+  times_per_day: number; notes: string; active: boolean; created_at: string;
+};
+export type ExerciseLog = { id: string; patient_exercise_id: string; patient_id: string; day: string };

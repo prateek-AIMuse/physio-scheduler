@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Flash, type FlashParams } from "@/components/flash";
 import { MessageItem } from "@/components/message-item";
 import { VisitCard } from "@/components/visit-card";
-import { rupees } from "@/lib/format";
+import { money } from "@/lib/format";
 import { refreshQueue } from "@/lib/messages";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
-import { addDays, formatDay, istDay, istInstant } from "@/lib/time";
+import { addDays, formatDay, zone } from "@/lib/time";
 import type { Message, Patient, Visit } from "@/lib/types";
 
 export default async function Today({ searchParams }: { searchParams: FlashParams }) {
@@ -14,20 +14,23 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
   const { db, practice, user } = await requireAdmin();
   const now = new Date();
   await refreshQueue(db, now);
-  const today = istDay(now), tomorrow = addDays(today, 1);
-  const [s, { data: patients }, { data: visits }, { data: due }, { data: pending }, { count: proposed }] = await Promise.all([
-    getSettings(db),
+  const s = await getSettings(db);
+  const z = zone(s.time_zone);
+  const today = z.day(now), tomorrow = addDays(today, 1);
+  const [{ data: patients }, { data: visits }, { data: due }, { data: pending }, { count: proposed }, { data: patientChanges }] = await Promise.all([
     db.from("patients").select("*"),
     db.from("visits").select("*").neq("status", "proposed")
-      .gte("starts_at", istInstant(today, 0).toISOString()).lt("starts_at", istInstant(addDays(today, 2), 0).toISOString()).order("starts_at"),
+      .gte("starts_at", z.instant(today, 0).toISOString()).lt("starts_at", z.instant(addDays(today, 2), 0).toISOString()).order("starts_at"),
     db.from("messages").select("*").eq("status", "pending").lte("due_at", now.toISOString()).order("due_at").limit(10),
     db.from("payment_requests").select("amount").eq("status", "pending"),
     db.from("visits").select("id", { count: "exact", head: true }).eq("status", "proposed"),
+    /* What patients booked, moved or cancelled themselves in the last 3 days */
+    db.from("visits").select("*").eq("booked_by", "patient").gte("changed_at", new Date(now.getTime() - 3 * 86_400_000).toISOString()).order("changed_at", { ascending: false }).limit(10),
   ]);
   const byId = new Map(((patients ?? []) as Patient[]).map((p) => [p.id, p]));
   const list = (visits ?? []) as Visit[];
-  const todays = list.filter((v) => istDay(new Date(v.starts_at)) === today);
-  const tomorrows = list.filter((v) => istDay(new Date(v.starts_at)) === tomorrow && v.status !== "cancelled");
+  const todays = list.filter((v) => z.day(new Date(v.starts_at)) === today);
+  const tomorrows = list.filter((v) => z.day(new Date(v.starts_at)) === tomorrow && v.status !== "cancelled");
   const owed = (pending ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
   const messages = (due ?? []) as Message[];
   /* First-run checklist for a new practice */
@@ -55,7 +58,7 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
 
       <div className="grid2">
         <div className="card stat-card"><p className="muted small">Visits today</p><p className="stat">{todays.filter((v) => v.status !== "cancelled").length}</p></div>
-        <div className="card stat-card"><p className="muted small">Payments waiting</p><p className="stat">{rupees(owed)}</p><Link href="/admin/payments" className="small">{pending?.length ?? 0} request{pending?.length === 1 ? "" : "s"}</Link></div>
+        <div className="card stat-card"><p className="muted small">Payments waiting</p><p className="stat">{money(owed, s.currency)}</p><Link href="/admin/payments" className="small">{pending?.length ?? 0} request{pending?.length === 1 ? "" : "s"}</Link></div>
       </div>
 
       {setup.length > 0 && (
@@ -67,13 +70,30 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
         </section>
       )}
 
+      {!!patientChanges?.length && (
+        <section className="card">
+          <h2>Changes by patients</h2>
+          <ul className="list">
+            {(patientChanges as Visit[]).map((v) => (
+              <li key={v.id} className="row between">
+                <span>
+                  <Link href={`/admin/patients/${v.patient_id}`} className="strong">{byId.get(v.patient_id)?.full_name ?? "A patient"}</Link>
+                  {" "}{v.status === "cancelled" ? "cancelled" : "booked"} {formatDay(z.day(new Date(v.starts_at)))}, {z.time(new Date(v.starts_at))}
+                </span>
+                <span className="small muted">{v.changed_at && `${formatDay(z.day(new Date(v.changed_at)))} ${z.time(new Date(v.changed_at))}`}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {!!proposed && <p className="notice warn">{proposed} suggested visit{proposed === 1 ? " is" : "s are"} waiting for your approval. <Link href="/admin/calendar">Review in Calendar</Link></p>}
 
       {s.whatsapp_mode === "manual" && messages.length > 0 && (
         <section className="card">
           <div className="card-head"><h2>WhatsApp messages to send</h2><Link href="/admin/messages" className="small">All messages</Link></div>
           <p className="small muted" style={{ marginBottom: 12 }}>Tap Send: WhatsApp opens with the message typed in. Press send there.</p>
-          <ul className="list">{messages.map((m) => <li key={m.id}><MessageItem m={m} p={byId.get(m.patient_id)} manual back="/admin" now={now} /></li>)}</ul>
+          <ul className="list">{messages.map((m) => <li key={m.id}><MessageItem m={m} p={byId.get(m.patient_id)} manual back="/admin" now={now} z={z} /></li>)}</ul>
         </section>
       )}
 

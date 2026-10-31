@@ -1,8 +1,8 @@
 import type { PracticeDb } from "@/lib/practice-db";
 import { env } from "@/lib/env";
-import { formatPhone, rupees } from "@/lib/format";
+import { formatPhone, money } from "@/lib/format";
 import { clinicLabel, getSettings, practiceLabel } from "@/lib/settings";
-import { addDays, formatDay, formatInstantTime, istDay, istInstant, mondayOf } from "@/lib/time";
+import { addDays, formatDay, mondayOf, zone } from "@/lib/time";
 import { sendTemplate } from "@/lib/whatsapp";
 import type { Message, MessageKind, Patient, PaymentRequest, Settings, Visit } from "@/lib/types";
 
@@ -20,19 +20,23 @@ function place(v: Pick<Visit, "location">, s: Settings, p: Patient, withLink: bo
   return `at ${clinicLabel(s)}${link}`;
 }
 
-const when = (v: Pick<Visit, "starts_at">) => `${formatDay(istDay(new Date(v.starts_at)), true)} at ${formatInstantTime(new Date(v.starts_at))}`;
+const when = (v: Pick<Visit, "starts_at">, s: Settings) => {
+  const z = zone(s.time_zone);
+  return `${formatDay(z.day(new Date(v.starts_at)), true)} at ${z.time(new Date(v.starts_at))}`;
+};
 const sign = (s: Settings) => `– ${practiceLabel(s)}`;
 
 export function dayReminderText(v: Visit, p: Patient, s: Settings) {
   const minutes = Math.round((Date.parse(v.ends_at) - Date.parse(v.starts_at)) / 60_000);
   return {
-    body: `Hi ${firstName(p)}, a reminder of your physio session tomorrow, ${when(v)} (${minutes} min), ${place(v, s, p, true)}.\nReply here if you need to change it.\n${sign(s)}`,
-    params: [firstName(p), when(v), place(v, s, p, false)],
+    body: `Hi ${firstName(p)}, a reminder of your physio session tomorrow, ${when(v, s)} (${minutes} min), ${place(v, s, p, true)}.\nReply here if you need to change it.\n${sign(s)}`,
+    params: [firstName(p), when(v, s), place(v, s, p, false)],
   };
 }
 
 export function weeklySummaryText(visits: Visit[], p: Patient, s: Settings, weekStart: string) {
-  const lines = visits.map((v) => `${formatDay(istDay(new Date(v.starts_at)))}, ${formatInstantTime(new Date(v.starts_at))} – ${v.location === "home" ? "Home visit" : clinicLabel(s)}`);
+  const z = zone(s.time_zone);
+  const lines = visits.map((v) => `${formatDay(z.day(new Date(v.starts_at)))}, ${z.time(new Date(v.starts_at))} – ${v.location === "home" ? "Home visit" : clinicLabel(s)}`);
   const clinic = visits.some((v) => v.location === "clinic") && s.clinic_maps_url ? `\n${clinicLabel(s)}: ${s.clinic_maps_url}` : "";
   return {
     body: `Hi ${firstName(p)}, your physio sessions for the week of ${formatDay(weekStart)}:\n${lines.map((l) => `• ${l}`).join("\n")}${clinic}\nReply here if any of these don't work for you.\n${sign(s)}`,
@@ -40,13 +44,21 @@ export function weeklySummaryText(visits: Visit[], p: Patient, s: Settings, week
   };
 }
 
+/* UPI only works for rupee payments to an Indian UPI ID */
+export const usesUpi = (s: Pick<Settings, "currency" | "upi_id">) => s.currency === "INR" && Boolean(s.upi_id);
+
 export const payUrl = (r: Pick<PaymentRequest, "token">) => `${env.siteUrl}/pay/${r.token}`;
 
 export function paymentText(r: PaymentRequest, p: Patient, s: Settings) {
   const why = r.description ? ` (${r.description})` : "";
+  const amount = money(r.amount, s.currency);
+  /* UPI in India; elsewhere the payment page shows the practice's own instructions */
+  const how = usesUpi(s)
+    ? `Pay by UPI here: ${payUrl(r)}\nor send it to UPI ID ${s.upi_id}${s.upi_payee_name ? ` (${s.upi_payee_name})` : ""}.`
+    : `Payment details: ${payUrl(r)}`;
   return {
-    body: `Hi ${firstName(p)}, thank you for completing your sessions! The amount due is ${rupees(r.amount)}${why}.\nPay by UPI here: ${payUrl(r)}\nor send it to UPI ID ${s.upi_id}${s.upi_payee_name ? ` (${s.upi_payee_name})` : ""}.\n${sign(s)}`,
-    params: [firstName(p), rupees(r.amount), payUrl(r)],
+    body: `Hi ${firstName(p)}, thank you for completing your sessions! The amount due is ${amount}${why}.\n${how}\n${sign(s)}`,
+    params: [firstName(p), amount, payUrl(r)],
   };
 }
 
@@ -72,32 +84,33 @@ export async function queueMessage(db: Db, m: { patient_id: string; kind: Messag
    pending ones if a visit moved, and drops ones that no longer apply. Safe to run any number of times. */
 export async function refreshQueue(db: Db, now = new Date()) {
   const s = await getSettings(db);
-  const today = istDay(now);
+  const z = zone(s.time_zone);
+  const today = z.day(now);
   const tomorrow = addDays(today, 1);
   const { data: patientRows } = await db.from("patients").select("*");
   const patients = new Map((patientRows as Patient[] ?? []).map((p) => [p.id, p]));
 
   /* Day-before reminders for every booked visit tomorrow */
   const { data: tomorrowVisits } = await db.from("visits").select("*").eq("status", "scheduled")
-    .gte("starts_at", istInstant(tomorrow, 0).toISOString()).lt("starts_at", istInstant(addDays(tomorrow, 1), 0).toISOString());
+    .gte("starts_at", z.instant(tomorrow, 0).toISOString()).lt("starts_at", z.instant(addDays(tomorrow, 1), 0).toISOString());
   for (const v of (tomorrowVisits as Visit[]) ?? []) {
     const p = patients.get(v.patient_id);
     if (!p?.active) continue;
     const t = dayReminderText(v, p, s);
-    await queueMessage(db, { patient_id: p.id, kind: "day_reminder", visit_id: v.id, dedupe_key: `day:${v.id}:${v.starts_at}`, body: t.body, params: t.params, due_at: istInstant(today, REMINDER_HOUR * 60) });
+    await queueMessage(db, { patient_id: p.id, kind: "day_reminder", visit_id: v.id, dedupe_key: `day:${v.id}:${v.starts_at}`, body: t.body, params: t.params, due_at: z.instant(today, REMINDER_HOUR * 60) });
   }
 
   /* From Sunday 6 pm, a summary of next week's visits for each patient who has any */
   const nextMonday = addDays(mondayOf(today), 7);
-  if (now >= istInstant(addDays(nextMonday, -1), SUMMARY_HOUR * 60)) {
+  if (now >= z.instant(addDays(nextMonday, -1), SUMMARY_HOUR * 60)) {
     const { data: weekVisits } = await db.from("visits").select("*").eq("status", "scheduled")
-      .gte("starts_at", istInstant(nextMonday, 0).toISOString()).lt("starts_at", istInstant(addDays(nextMonday, 7), 0).toISOString()).order("starts_at");
+      .gte("starts_at", z.instant(nextMonday, 0).toISOString()).lt("starts_at", z.instant(addDays(nextMonday, 7), 0).toISOString()).order("starts_at");
     const byPatient = Map.groupBy((weekVisits as Visit[]) ?? [], (v) => v.patient_id);
     for (const [pid, list] of byPatient) {
       const p = patients.get(pid);
       if (!p?.active) continue;
       const t = weeklySummaryText(list, p, s, nextMonday);
-      await queueMessage(db, { patient_id: pid, kind: "weekly_summary", dedupe_key: `week:${pid}:${nextMonday}`, body: t.body, params: t.params, due_at: istInstant(addDays(nextMonday, -1), SUMMARY_HOUR * 60) });
+      await queueMessage(db, { patient_id: pid, kind: "weekly_summary", dedupe_key: `week:${pid}:${nextMonday}`, body: t.body, params: t.params, due_at: z.instant(addDays(nextMonday, -1), SUMMARY_HOUR * 60) });
     }
   }
 
@@ -117,7 +130,7 @@ export async function refreshQueue(db: Db, now = new Date()) {
       if (weekStart < mondayOf(today)) update = { status: "skipped", error: "That week has passed" };
       else {
         const { data: vs } = await db.from("visits").select("*").eq("patient_id", m.patient_id).eq("status", "scheduled")
-          .gte("starts_at", istInstant(weekStart, 0).toISOString()).lt("starts_at", istInstant(addDays(weekStart, 7), 0).toISOString()).order("starts_at");
+          .gte("starts_at", z.instant(weekStart, 0).toISOString()).lt("starts_at", z.instant(addDays(weekStart, 7), 0).toISOString()).order("starts_at");
         if (!vs?.length) update = { status: "skipped", error: "No visits that week" };
         else {
           const t = weeklySummaryText(vs as Visit[], p, s, weekStart);

@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addPackage, addPreference, deletePackage, deletePreference, markPackagePaid, requestPackagePayment, sendLoginLink, setPatientActive } from "@/app/admin/actions";
+import { assignExercise, removeAssignment } from "@/app/admin/exercises/actions";
 import { Flash } from "@/components/flash";
 import { PatientForm } from "@/components/patient-form";
 import { PreferenceEditor } from "@/components/preference-editor";
-import { formatPhone, mapsLink, rupees } from "@/lib/format";
+import { formatPhone, mapsLink, money } from "@/lib/format";
 import { packageStates } from "@/lib/packages";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
-import { formatDay, formatInstantTime, istDay } from "@/lib/time";
-import { LOCATION_LABEL, STATUS_LABEL, type Package, type Patient, type PaymentRequest, type Preference, type Visit } from "@/lib/types";
+import { addDays, formatDay, zone, type Zone } from "@/lib/time";
+import { LOCATION_LABEL, STATUS_LABEL, type Package, type Patient, type PaymentRequest, type Preference, type Visit, type Exercise, type ExerciseLog, type PatientExercise } from "@/lib/types";
 
 export default async function PatientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
   const [{ id }, flash] = await Promise.all([params, searchParams]);
@@ -25,6 +26,15 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
     db.from("visits").select("package_id").eq("patient_id", id).not("package_id", "is", null),
   ]);
   if (!p) notFound();
+  const z = zone(s.time_zone);
+  /* Home exercise programme, and which of the last 7 days each exercise was done */
+  const weekAgo = addDays(z.day(new Date()), -6);
+  const [{ data: library }, { data: assigned }, { data: logs }] = await Promise.all([
+    db.from("exercises").select("*").order("name"),
+    db.from("patient_exercises").select("*").eq("patient_id", id).eq("active", true).order("created_at"),
+    db.from("exercise_logs").select("*").eq("patient_id", id).gte("day", weekAgo),
+  ]);
+  const exById = new Map(((library ?? []) as Exercise[]).map((e) => [e.id, e]));
   const patient = p as Patient;
   const back = `/admin/patients/${id}`;
   const vlist = (visits ?? []) as Visit[];
@@ -57,7 +67,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
         </div>
         {current ? (
           <div className="stack-sm">
-            <p><span className="stat">{current.used}</span> <span className="muted">of {current.total_visits} visits used · {rupees(current.price)}</span>
+            <p><span className="stat">{current.used}</span> <span className="muted">of {current.total_visits} visits used · {money(current.price, s.currency)}</span>
               {current.paid_at ? <span className="chip paid" style={{ marginLeft: 8 }}>Paid</span> : <span className="chip pending" style={{ marginLeft: 8 }}>Not paid</span>}</p>
             <div className="counter" aria-hidden>{Array.from({ length: current.total_visits }, (_, i) => <span key={i} className={i < current.used ? "used" : ""} />)}</div>
           </div>
@@ -67,11 +77,11 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           {[...states].reverse().map((k) => (
             <li key={k.id} className="row between">
               <div>
-                <span className="strong">{k.total_visits} visits · {rupees(k.price)}</span>
-                <span className="small muted"> · {k.used} used · added {formatDay(istDay(new Date(k.created_at)))}{k.auto_from_visit && " (renewal)"}{k.notes && ` · ${k.notes}`}</span>
+                <span className="strong">{k.total_visits} visits · {money(k.price, s.currency)}</span>
+                <span className="small muted"> · {k.used} used · added {formatDay(z.day(new Date(k.created_at)))}{k.auto_from_visit && " (renewal)"}{k.notes && ` · ${k.notes}`}</span>
               </div>
               <div className="row">
-                {k.paid_at ? <span className="chip paid">Paid {formatDay(istDay(new Date(k.paid_at)))}</span> : <>
+                {k.paid_at ? <span className="chip paid">Paid {formatDay(z.day(new Date(k.paid_at)))}</span> : <>
                   <span className="chip pending">Not paid</span>
                   <form action={markPackagePaid} className="inline"><input type="hidden" name="id" value={k.id} />{hiddenBack}<button className="btn sm">Mark paid</button></form>
                   {!((requests ?? []) as PaymentRequest[]).some((r) => r.package_id === k.id && r.status === "pending") && k.price > 0 &&
@@ -89,7 +99,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
             <input type="hidden" name="patient_id" value={id} />{hiddenBack}
             <div className="fields">
               <label>Visits<input type="number" name="total_visits" min={1} max={200} required defaultValue={current?.total_visits ?? 6} /></label>
-              <label>Price (₹)<input type="number" name="price" min={0} step="any" required defaultValue={current?.price} /></label>
+              <label>Price ({s.currency})<input type="number" name="price" min={0} step="any" required defaultValue={current?.price} /></label>
               <label>Note<input name="notes" placeholder="Optional" /></label>
             </div>
             <label className="check"><input type="checkbox" name="paid" /> Already paid</label>
@@ -98,9 +108,56 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
           </form>
         </details>
         <p className="small muted" style={{ marginTop: 12 }}>
-          Clinic and home visits both count. Home visits add {rupees(s.home_visit_fee)} each, asked for with the next payment.
+          Clinic and home visits both count. Home visits add {money(s.home_visit_fee, s.currency)} each, asked for with the next payment.
           When the last visit is marked done, the next package (same size and price) is made and the payment request goes out.
         </p>
+      </section>
+
+      <section className="card">
+        <div className="card-head">
+          <h2 style={{ margin: 0 }}>Home exercises</h2>
+          <Link href="/admin/exercises" className="small">Exercise library</Link>
+        </div>
+        {assigned?.length ? (
+          <ul className="list">
+            {(assigned as PatientExercise[]).map((a) => {
+              const e = exById.get(a.exercise_id);
+              const daysDone = ((logs ?? []) as ExerciseLog[]).filter((l) => l.patient_exercise_id === a.id).length;
+              return (
+                <li key={a.id} className="row between">
+                  <div>
+                    <p className="strong">{e?.name ?? "Exercise"}</p>
+                    <p className="small muted">
+                      {a.sets} × {a.reps}{a.hold_seconds ? `, hold ${a.hold_seconds}s` : ""}{a.times_per_day > 1 ? `, ${a.times_per_day}× a day` : ""}{a.notes && ` · ${a.notes}`}
+                    </p>
+                    <p className="small">Done {daysDone} of the last 7 days</p>
+                  </div>
+                  <form action={removeAssignment} className="inline"><input type="hidden" name="id" value={a.id} />{hiddenBack}<button className="btn sm danger">Remove</button></form>
+                </li>
+              );
+            })}
+          </ul>
+        ) : <p className="empty">No home exercises yet.</p>}
+        {library?.length ? (
+          <details style={{ marginTop: 12 }}>
+            <summary>+ Add an exercise</summary>
+            <form action={assignExercise} className="stack-sm">
+              <input type="hidden" name="patient_id" value={id} />{hiddenBack}
+              <label>Exercise<select name="exercise_id" required defaultValue="">
+                <option value="" disabled>Choose…</option>
+                {(library as Exercise[]).map((e) => <option key={e.id} value={e.id}>{e.name}{e.body_area && ` (${e.body_area})`}</option>)}
+              </select></label>
+              <div className="fields">
+                <label>Sets<input type="number" name="sets" min={1} max={20} required defaultValue={3} /></label>
+                <label>Reps<input type="number" name="reps" min={1} max={200} required defaultValue={10} /></label>
+                <label>Hold (seconds)<input type="number" name="hold_seconds" min={0} max={600} placeholder="—" /></label>
+                <label>Times a day<input type="number" name="times_per_day" min={1} max={10} defaultValue={1} /></label>
+              </div>
+              <label>Note for the patient<input name="notes" placeholder="e.g. Stop if pain goes above 4/10" /></label>
+              <div><button className="btn primary">Add to programme</button></div>
+            </form>
+          </details>
+        ) : <p className="small muted" style={{ marginTop: 8 }}>Add exercises to your <Link href="/admin/exercises">library</Link> first.</p>}
       </section>
 
       <section className="card">
@@ -110,13 +167,13 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
 
       <section className="card">
         <h2>Upcoming visits</h2>
-        {upcoming.length ? <ul className="list">{upcoming.map((v) => <li key={v.id}><VisitLine v={v} clinic={clinic} /></li>)}</ul> : <p className="empty">None booked.</p>}
+        {upcoming.length ? <ul className="list">{upcoming.map((v) => <li key={v.id}><VisitLine v={v} clinic={clinic} z={z} currency={s.currency} /></li>)}</ul> : <p className="empty">None booked.</p>}
         <p className="small" style={{ marginTop: 8 }}><Link href="/admin/calendar">Book or change visits in Calendar</Link></p>
       </section>
 
       <section className="card">
         <h2>Past visits</h2>
-        {past.length ? <ul className="list">{past.map((v) => <li key={v.id}><VisitLine v={v} clinic={clinic} /></li>)}</ul> : <p className="empty">None yet.</p>}
+        {past.length ? <ul className="list">{past.map((v) => <li key={v.id}><VisitLine v={v} clinic={clinic} z={z} currency={s.currency} /></li>)}</ul> : <p className="empty">None yet.</p>}
       </section>
 
       <section className="card stack-sm">
@@ -143,14 +200,14 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
   );
 }
 
-function VisitLine({ v, clinic }: { v: Visit; clinic: string }) {
+function VisitLine({ v, clinic, z, currency }: { v: Visit; clinic: string; z: Zone; currency: string }) {
   const start = new Date(v.starts_at);
   return (
     <div className="row between">
-      <span>{formatDay(istDay(start))}, {formatInstantTime(start)} <span className={`chip ${v.location}`} style={{ marginLeft: 6 }}>{v.location === "clinic" ? clinic : LOCATION_LABEL[v.location]}</span></span>
+      <span>{formatDay(z.day(start))}, {z.time(start)} <span className={`chip ${v.location}`} style={{ marginLeft: 6 }}>{v.location === "clinic" ? clinic : LOCATION_LABEL[v.location]}</span></span>
       <span className="row">
         {v.visit_no && <span className="chip">Visit {v.visit_no}</span>}
-        {v.home_fee > 0 && <span className="small muted">+{rupees(v.home_fee)}</span>}
+        {v.home_fee > 0 && <span className="small muted">+{money(v.home_fee, currency)}</span>}
         <span className={`chip ${v.status}`}>{STATUS_LABEL[v.status]}</span>
       </span>
     </div>

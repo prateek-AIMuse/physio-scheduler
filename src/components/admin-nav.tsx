@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/admin/patients", label: "Patients", tab: true, icon: "M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M21 20v-1a4 4 0 0 0-3-3.9M16 4.1a3.5 3.5 0 0 1 0 6.8" },
   { href: "/admin/payments", label: "Payments", tab: true, icon: "M3 7h18v12H3zM3 11h18M7 15h3" },
   { href: "/admin/messages", label: "Messages", tab: true, icon: "M21 12a8 8 0 0 1-11.8 7L4 20l1.2-4.6A8 8 0 1 1 21 12z" },
+  { href: "/admin/exercises", label: "Exercises", tab: false, icon: "" },
   { href: "/admin/hours", label: "Hours", tab: false, icon: "" },
   { href: "/admin/settings", label: "Settings", tab: false, icon: "" },
 ];
