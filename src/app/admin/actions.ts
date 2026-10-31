@@ -43,7 +43,8 @@ export async function saveSettings(fd: FormData) {
     home_visit_fee: fee, travel_buffer_minutes: buffer,
     whatsapp_mode: str(fd, "whatsapp_mode") === "cloud_api" ? "cloud_api" : "manual",
     updated_at: new Date().toISOString(),
-  }).eq("id", 1);
+  /* One settings row per practice; practiceDb limits the update to this practice's */
+  });
   done();
   back(fd, "/admin/settings", error ? { error: error.message } : { ok: "Settings saved" });
 }
