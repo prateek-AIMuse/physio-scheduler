@@ -92,6 +92,8 @@ export type PaymentRequest = {
   from_visit: string | null;
   created_at: string;
   paid_at: string | null;
+  gateway?: "razorpay" | "stripe" | null;
+  paid_via?: string | null;
 };
 
 export type Message = {

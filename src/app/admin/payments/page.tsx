@@ -29,7 +29,7 @@ export default async function Payments({ searchParams }: { searchParams: FlashPa
       <Flash {...flash} />
       <section className="card">
         <div className="card-head"><h2>Waiting for payment</h2><span className="strong">{money(pending.reduce((s, r) => s + r.amount, 0), s.currency)}</span></div>
-        <p className="small muted" style={{ marginBottom: 12 }}>Patients pay by UPI to your UPI ID. Check your bank app, then mark the request paid here.</p>
+        <p className="small muted" style={{ marginBottom: 12 }}>Online payments (Razorpay or Stripe, set up in Settings) are marked paid automatically. For UPI or bank transfers, check your bank app, then mark the request paid here.</p>
         {pending.length ? (
           <ul className="list">
             {pending.map((r) => (
@@ -79,7 +79,7 @@ export default async function Payments({ searchParams }: { searchParams: FlashPa
               <tr key={r.id}>
                 <td>{byId.get(r.patient_id)?.full_name}<div className="small muted">{r.description}</div></td>
                 <td className="nowrap">{money(r.amount, s.currency)}</td>
-                <td><span className={`chip ${r.status}`}>{r.status === "paid" ? `Paid ${r.paid_at ? day(r.paid_at) : ""}` : "Withdrawn"}</span></td>
+                <td><span className={`chip ${r.status}`}>{r.status === "paid" ? `Paid ${r.paid_at ? day(r.paid_at) : ""}${r.paid_via ? ` · ${r.paid_via === "razorpay" ? "Razorpay" : "Stripe"}` : ""}` : "Withdrawn"}</span></td>
               </tr>
             ))}</tbody>
           </table>

@@ -1,13 +1,19 @@
 import { saveSettings } from "@/app/admin/actions";
 import { Flash, type FlashParams } from "@/components/flash";
-import { whatsappApiConfigured } from "@/lib/env";
+import { env, whatsappApiConfigured } from "@/lib/env";
+import { getGateways } from "@/lib/gateways";
+
+/* Shows only the start and end of a saved key */
+const mask = (k: string) => (k.length > 10 ? `${k.slice(0, 8)}…${k.slice(-4)}` : "Saved");
 import { COUNTRIES, CURRENCIES, timeZones } from "@/lib/regions";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
 
 export default async function SettingsPage({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
-  const s = await getSettings((await requireAdmin()).db);
+  const { db, practice } = await requireAdmin();
+  const [s, g] = await Promise.all([getSettings(db), getGateways(practice.id)]);
+  const site = env.siteUrl || "https://<your-site>";
   return (
     <main className="stack">
       <h1>Settings</h1>
@@ -52,6 +58,22 @@ export default async function SettingsPage({ searchParams }: { searchParams: Fla
             <label>Name on the UPI account<input name="upi_payee_name" defaultValue={s.upi_payee_name} /></label>
           </div>
           <label>Payment instructions (shown when UPI doesn&apos;t apply)<textarea name="payment_instructions" rows={3} defaultValue={s.payment_instructions} placeholder="e.g. Bank transfer to: Account name, sort code / IBAN, reference: your name" /></label>
+        </section>
+        <section className="card stack-sm" id="online-payments">
+          <h2>Online payments</h2>
+          <p className="small muted">Connect your own Razorpay (India) or Stripe (worldwide) account. Patients then get a Pay online button, and payments are marked paid automatically. Leave a key blank to keep the saved one.</p>
+          <div className="fields">
+            <label>Razorpay key ID<input name="razorpay_key_id" autoComplete="off" placeholder={g?.razorpay_key_id ? mask(g.razorpay_key_id) : "rzp_live_…"} /></label>
+            <label>Razorpay key secret<input name="razorpay_key_secret" type="password" autoComplete="off" placeholder={g?.razorpay_key_secret ? "Saved" : ""} /></label>
+            <label>Razorpay webhook secret<input name="razorpay_webhook_secret" type="password" autoComplete="off" placeholder={g?.razorpay_webhook_secret ? "Saved" : ""} /></label>
+          </div>
+          <p className="small muted">Razorpay → Settings → Webhooks: add <code>{site}/api/payments/razorpay/{practice.id}</code> with the event <b>payment_link.paid</b> and the webhook secret above.</p>
+          <div className="fields">
+            <label>Stripe secret key<input name="stripe_secret_key" type="password" autoComplete="off" placeholder={g?.stripe_secret_key ? mask(g.stripe_secret_key) : "sk_live_…"} /></label>
+            <label>Stripe webhook signing secret<input name="stripe_webhook_secret" type="password" autoComplete="off" placeholder={g?.stripe_webhook_secret ? "Saved" : "whsec_…"} /></label>
+          </div>
+          <p className="small muted">Stripe → Developers → Webhooks: add <code>{site}/api/payments/stripe/{practice.id}</code> with the events <b>checkout.session.completed</b> and <b>checkout.session.async_payment_succeeded</b>.</p>
+          {(g?.razorpay_key_id || g?.stripe_secret_key) && <label className="check"><input type="checkbox" name="remove_gateways" /> Disconnect online payments (removes the saved keys)</label>}
         </section>
         <section className="card stack-sm">
           <h2>Patient self-booking</h2>

@@ -22,6 +22,8 @@ patient (`supabase/migrations/0002_practices.sql`).
 - After logging in, physios and patients are greeted with **"Welcome, <name>"**.
 
 
+## What it does
+
 **For the physio** (logs in with email and password, `/admin`):
 
 | Page | What's there |
@@ -76,6 +78,19 @@ schedule** (Sunday 6 pm, for the coming week), **payment requests**, and **login
   Messages stay current: a reminder for a visit that moved or was cancelled is dropped.
 - **Automatic mode** (later). Needs a WhatsApp Business number on Meta's WhatsApp Cloud API. See
   *Switching on automatic WhatsApp* below.
+
+## More features
+
+- **Time zones, currencies and countries:** each practice works in its own time zone (daylight saving
+  included), currency and phone country (Settings → Region). Sign-up sets them from the physio's country.
+- **Patient self-booking:** with Settings → Patient self-booking on, patients book open times, and move or
+  cancel sessions up to a set number of hours ahead. The physio sees their changes on Today.
+- **Home exercise programmes:** an exercise library per practice (with a starter set and optional video
+  links), programmes with sets, reps, hold and times a day for each patient, and a daily Done tick for
+  patients. The physio sees how many of the last 7 days each exercise was done.
+- **Online payments:** each practice can connect its own Razorpay (India) and/or Stripe (worldwide)
+  account in Settings → Online payments. Patients get a Pay online button; the gateway's webhook
+  (signature-checked) marks the request paid. UPI and manual "Mark paid" still work.
 
 ## Phones and tablets
 

@@ -14,6 +14,23 @@ import { findClash } from "@/lib/visits";
 import { insertPreference } from "@/lib/preferences";
 import type { Patient, PaymentRequest, Preference, Visit } from "@/lib/types";
 
+/* Saves the practice's Razorpay/Stripe keys. Blank fields keep what's saved; returns an error message or null. */
+async function saveGateways(db: PracticeDb, fd: FormData): Promise<string | null> {
+  const raw = db.raw.from("payment_gateways");
+  if (fd.get("remove_gateways") === "on") {
+    await raw.delete().eq("practice_id", db.practiceId);
+    return null;
+  }
+  const keys = ["razorpay_key_id", "razorpay_key_secret", "razorpay_webhook_secret", "stripe_secret_key", "stripe_webhook_secret"] as const;
+  const changes = Object.fromEntries(keys.map((k) => [k, str(fd, k)]).filter(([, v]) => v));
+  if (!Object.keys(changes).length) return null;
+  if (changes.razorpay_key_id && !/^rzp_(live|test)_\w+$/.test(changes.razorpay_key_id)) return "That Razorpay key ID doesn't look right (it starts with rzp_live_ or rzp_test_)";
+  if (changes.stripe_secret_key && !/^(sk|rk)_(live|test)_\w+$/.test(changes.stripe_secret_key)) return "That Stripe key doesn't look right (it starts with sk_live_ or sk_test_)";
+  if (changes.stripe_webhook_secret && !changes.stripe_webhook_secret.startsWith("whsec_")) return "The Stripe signing secret starts with whsec_";
+  const { error } = await raw.upsert({ practice_id: db.practiceId, ...changes, updated_at: new Date().toISOString() }, { onConflict: "practice_id" });
+  return error ? error.message : null;
+}
+
 /* Every action works on the signed-in physio's own practice only */
 async function admin() {
   return (await requireAdmin()).db;
@@ -53,8 +70,10 @@ export async function saveSettings(fd: FormData) {
     whatsapp_mode: str(fd, "whatsapp_mode") === "cloud_api" ? "cloud_api" : "manual",
     updated_at: new Date().toISOString(),
   });
+  if (error) back(fd, "/admin/settings", { error: error.message });
+  const gw = await saveGateways(db, fd);
   done();
-  back(fd, "/admin/settings", error ? { error: error.message } : { ok: "Settings saved" });
+  back(fd, "/admin/settings", gw ? { error: gw } : { ok: "Settings saved" });
 }
 
 export async function addAvailability(fd: FormData) {
