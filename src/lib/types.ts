@@ -16,8 +16,22 @@ export type Settings = {
   whatsapp_mode: "manual" | "cloud_api";
 };
 
+export type Practice = {
+  id: string;
+  owner_user_id: string | null;
+  status: "pending" | "approved" | "suspended";
+  physio_name: string;
+  email: string;
+  phone: string;
+  city: string;
+  registration_no: string;
+  created_at: string;
+  approved_at: string | null;
+};
+
 export type Patient = {
   id: string;
+  practice_id: string;
   user_id: string | null;
   full_name: string;
   phone: string;

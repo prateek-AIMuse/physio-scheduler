@@ -1,12 +1,12 @@
 import { addAvailability, deleteAvailability } from "@/app/admin/actions";
 import { Flash, type FlashParams } from "@/components/flash";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { formatTime, parseTime, WEEKDAYS, WEEKDAYS_SHORT } from "@/lib/time";
 import type { Availability } from "@/lib/types";
 
 export default async function Hours({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
-  const { data } = await createAdminClient().from("availability").select("*").order("weekday").order("start_time");
+  const { data } = await (await requireAdmin()).db.from("availability").select("*").order("weekday").order("start_time");
   const slots = (data ?? []) as Availability[];
   return (
     <main className="stack">

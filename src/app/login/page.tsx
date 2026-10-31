@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               <h1>Welcome back</h1>
               <p className="muted">Patients: see your sessions and choose the times that suit you. Physios: manage your week.</p>
             </div>
-            {error === "link" && <p className="notice error">That login link has expired or was already used. Log in with your phone number, or ask your physio for a new link.</p>}
+            {error === "link" && <p className="notice error">That link has expired or was already used. Patients: log in with your phone number, or ask your physio for a new link. Physios who just confirmed their email: log in with your password.</p>}
             <LoginForm initialTab={as === "physio" ? "physio" : "patient"} next={next?.startsWith("/") && !next.startsWith("//") ? next : "/"} />
           </div>
         </div>

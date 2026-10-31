@@ -11,7 +11,8 @@ import { supabaseConfigured } from "@/lib/env";
    names appear only after login and in the practice's own WhatsApp messages. */
 export default async function Home() {
   const viewer = supabaseConfigured() ? await getViewer() : null;
-  if (viewer?.role === "admin") redirect("/admin");
+  if (viewer?.role === "physio") redirect(viewer.practice.status === "approved" ? "/admin" : "/pending");
+  if (viewer?.owner && viewer.role === "unknown") redirect("/owner");
   if (viewer?.role === "patient") redirect("/me");
 
   return (
@@ -91,6 +92,7 @@ export default async function Home() {
           <span className="kicker">For physiotherapists</span>
           <h2>Your calendar, packages and payments, handled</h2>
           <p className="muted">Built for independent physios who treat patients at a clinic and at home.</p>
+          <Link href="/signup" className="btn primary" style={{ marginTop: 14 }}>Join as a physio</Link>
         </div>
         <div className="steps">
           <div className="step reveal"><h3>Plan the week in one tap</h3><p>Suggests visits from your free slots and each patient&apos;s preferred times, with travel time around home visits.</p></div>

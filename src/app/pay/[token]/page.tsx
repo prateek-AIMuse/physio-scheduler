@@ -5,6 +5,7 @@ import { Logo } from "@/components/logo";
 import { rupees } from "@/lib/format";
 import { getSettings, practiceLabel } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/server";
+import { practiceDb } from "@/lib/practice-db";
 import { upiLink, upiQrSvg } from "@/lib/upi";
 import { supabaseConfigured } from "@/lib/env";
 
@@ -19,7 +20,7 @@ export default async function Pay({ params }: { params: Promise<{ token: string 
   const db = createAdminClient();
   const { data: r } = await db.from("payment_requests").select("*, patients(full_name)").eq("token", token).maybeSingle();
   if (!r) notFound();
-  const s = await getSettings(db);
+  const s = await getSettings(practiceDb(r.practice_id));
   const amount = Number(r.amount);
   const first = (r.patients as { full_name: string } | null)?.full_name.split(" ")[0] ?? "";
   const link = upiLink({ upiId: s.upi_id, payee: s.upi_payee_name || practiceLabel(s), amount, note: r.description || `${practiceLabel(s)} sessions` });

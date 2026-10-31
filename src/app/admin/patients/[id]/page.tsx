@@ -7,14 +7,14 @@ import { PreferenceEditor } from "@/components/preference-editor";
 import { formatPhone, mapsLink, rupees } from "@/lib/format";
 import { packageStates } from "@/lib/packages";
 import { getSettings } from "@/lib/settings";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { formatDay, formatInstantTime, istDay } from "@/lib/time";
 import { LOCATION_LABEL, STATUS_LABEL, type Package, type Patient, type PaymentRequest, type Preference, type Visit } from "@/lib/types";
 
 export default async function PatientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
   const [{ id }, flash] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
-  const db = createAdminClient();
+  const { db } = await requireAdmin();
   const [s, { data: p }, { data: prefs }, { data: packages }, { data: visits }, { data: requests }, { data: counted }] = await Promise.all([
     getSettings(db),
     db.from("patients").select("*").eq("id", id).maybeSingle(),

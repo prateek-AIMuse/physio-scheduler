@@ -1,11 +1,11 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import type { PracticeDb } from "@/lib/practice-db";
 import type { Settings } from "@/lib/types";
 
-type Db = ReturnType<typeof createAdminClient>;
+type Db = PracticeDb;
 
 export async function getSettings(db: Db): Promise<Settings> {
-  const { data, error } = await db.from("settings").select("*").eq("id", 1).single();
-  if (error || !data) throw new Error(`Settings missing: run supabase/migrations/0001_schema.sql (${error?.message})`);
+  const { data, error } = await db.from("settings").select("*").maybeSingle();
+  if (error || !data) throw new Error(`Settings missing for this practice: run supabase/migrations/0002_practices.sql (${error?.message})`);
   return { ...data, home_visit_fee: Number(data.home_visit_fee) } as Settings;
 }
 

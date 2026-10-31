@@ -3,12 +3,12 @@ import { MessageItem } from "@/components/message-item";
 import { whatsappApiConfigured } from "@/lib/env";
 import { refreshQueue } from "@/lib/messages";
 import { getSettings } from "@/lib/settings";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import type { Message, Patient } from "@/lib/types";
 
 export default async function Messages({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
-  const db = createAdminClient();
+  const { db } = await requireAdmin();
   const now = new Date();
   await refreshQueue(db, now);
   const [s, { data: patients }, { data: pending }, { data: history }] = await Promise.all([

@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Flash, type FlashParams } from "@/components/flash";
 import { formatPhone } from "@/lib/format";
 import { packageStates } from "@/lib/packages";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { formatDay, formatInstantTime, istDay } from "@/lib/time";
 import type { Package, Patient, Visit } from "@/lib/types";
 
 export default async function Patients({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
-  const db = createAdminClient();
+  const { db } = await requireAdmin();
   const [{ data: patients }, { data: packages }, { data: counted }, { data: upcoming }, { data: prefs }] = await Promise.all([
     db.from("patients").select("*").order("active", { ascending: false }).order("full_name"),
     db.from("packages").select("*"),

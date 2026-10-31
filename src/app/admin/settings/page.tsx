@@ -2,11 +2,11 @@ import { saveSettings } from "@/app/admin/actions";
 import { Flash, type FlashParams } from "@/components/flash";
 import { whatsappApiConfigured } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function SettingsPage({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
-  const s = await getSettings(createAdminClient());
+  const s = await getSettings((await requireAdmin()).db);
   return (
     <main className="stack">
       <h1>Settings</h1>

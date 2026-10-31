@@ -1,10 +1,10 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/server";
+import type { PracticeDb } from "@/lib/practice-db";
 import { back, isTime, str } from "@/lib/forms";
 import { parseTime } from "@/lib/time";
 import type { Preference } from "@/lib/types";
 
-type Db = ReturnType<typeof createAdminClient>;
+type Db = PracticeDb;
 
 /* Adds a patient's preferred times from the form. Callers check who may edit this patient first. */
 export async function insertPreference(db: Db, patientId: string, fd: FormData, fallback: string) {
