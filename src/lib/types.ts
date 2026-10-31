@@ -42,6 +42,8 @@ export type Patient = {
   user_id: string | null;
   full_name: string;
   phone: string;
+  /* What they are being treated for */
+  condition: string;
   address: string;
   maps_url: string;
   session_minutes: number;

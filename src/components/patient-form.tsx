@@ -1,6 +1,14 @@
 import { savePatient } from "@/app/admin/actions";
 import type { Patient } from "@/lib/types";
 
+/* Suggestions as the physio types; any condition can be entered */
+const COMMON_CONDITIONS = [
+  "Low back pain", "Neck pain", "Sciatica", "Lumbar disc herniation", "Cervical spondylosis", "Frozen shoulder",
+  "Rotator cuff injury", "Tennis elbow", "Knee osteoarthritis", "ACL reconstruction rehab", "Meniscus injury",
+  "Total knee replacement rehab", "Hip replacement rehab", "Ankle sprain", "Plantar fasciitis", "Post-fracture rehab",
+  "Stroke rehab", "Parkinson's disease", "Sports injury", "Post-surgery rehab", "Posture correction",
+];
+
 export function PatientForm({ p, clinicName }: { p?: Patient; clinicName: string }) {
   return (
     <form action={savePatient} className="stack-sm">
@@ -17,6 +25,8 @@ export function PatientForm({ p, clinicName }: { p?: Patient; clinicName: string
           <option value="clinic">{clinicName}</option><option value="home">Patient&apos;s home</option>
         </select></label>
       </div>
+      <label>Condition being treated<input name="condition" required list="conditions" defaultValue={p?.condition} placeholder="e.g. Knee osteoarthritis, frozen shoulder, ACL rehab" autoComplete="off" /></label>
+      <datalist id="conditions">{COMMON_CONDITIONS.map((c) => <option key={c} value={c} />)}</datalist>
       <label>Home address<textarea name="address" rows={2} defaultValue={p?.address} placeholder="Flat, building, street, area" /></label>
       <label>Google Maps link for the home (optional)<input name="maps_url" type="url" defaultValue={p?.maps_url} placeholder="https://maps.app.goo.gl/…  (without one, the address is searched)" /></label>
       <label>Notes (only you see these)<textarea name="notes" rows={2} defaultValue={p?.notes} /></label>
