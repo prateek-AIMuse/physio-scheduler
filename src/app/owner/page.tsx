@@ -6,7 +6,7 @@ import { requireOwner } from "@/lib/auth";
 import { APP_NAME } from "@/lib/brand";
 import { formatPhone } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/server";
-import { formatDay, istDay } from "@/lib/time";
+import { formatDay } from "@/lib/time";
 import type { Practice } from "@/lib/types";
 
 export const metadata = { title: "Owner" };
@@ -62,7 +62,7 @@ export default async function Owner({ searchParams }: { searchParams: FlashParam
                       <p className="small muted">
                         {[p.email, p.phone && formatPhone(p.phone), p.city, p.registration_no && `Reg. ${p.registration_no}`].filter(Boolean).join(" · ")}
                       </p>
-                      <p className="small muted">Signed up {formatDay(istDay(new Date(p.created_at)))} · {count(p.id)} active patients</p>
+                      <p className="small muted">Signed up {formatDay(p.created_at.slice(0, 10))} · {count(p.id)} active patients</p>
                     </div>
                     <div className="row">
                       {p.status !== "approved" && btn(p, "approved", "Approve", "primary")}

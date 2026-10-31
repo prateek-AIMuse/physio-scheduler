@@ -112,7 +112,8 @@ The current photos are free to use under the [Pexels licence](https://www.pexels
 ## Setup
 
 1. **Supabase.** Create a free project at supabase.com. In the SQL editor, run
-   `supabase/migrations/0001_schema.sql`, then `0002_practices.sql`.
+   `supabase/migrations/0001_schema.sql`, then the others in number order
+   (`0002_practices.sql`, `0003_regions.sql`, …). Each runs once.
    - Authentication → Users → **Add user**: the physio's email and a password, with *Auto confirm* on.
    - Authentication → URL Configuration: set the Site URL to the app's address and add
      `https://<app-address>/**` to the redirect URLs.
@@ -173,5 +174,8 @@ npm run lint
 npm run preview              # Cloudflare build served by Wrangler
 ```
 
-All times are India time (Asia/Kolkata). Row-level security is on for every table with no policies:
+Each practice sets its time zone, currency and phone country under Settings → Region (new
+practices get them from the country chosen at sign-up). Days, reminders and the weekly plan use that
+time zone, daylight saving included. UPI is offered for rupee payments; other currencies show the
+practice's payment instructions. Row-level security is on for every table with no policies:
 browsers can't read the database directly; the server checks who's asking and uses the service role key.

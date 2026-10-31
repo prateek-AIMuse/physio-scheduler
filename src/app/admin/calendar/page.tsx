@@ -4,20 +4,21 @@ import { Flash } from "@/components/flash";
 import { VisitCard } from "@/components/visit-card";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
-import { addDays, formatDay, formatTime, isDay, istDay, istInstant, mondayOf, parseTime, weekdayOf } from "@/lib/time";
+import { addDays, formatDay, formatTime, isDay, mondayOf, parseTime, weekdayOf, zone } from "@/lib/time";
 import type { Availability, Patient, Visit } from "@/lib/types";
 
 export default async function Calendar({ searchParams }: { searchParams: Promise<{ week?: string; ok?: string; error?: string }> }) {
   const { week: w, ...flash } = await searchParams;
   const now = new Date();
-  const today = istDay(now);
+  const { db } = await requireAdmin();
+  const s = await getSettings(db);
+  const z = zone(s.time_zone);
+  const today = z.day(now);
   const week = mondayOf(isDay(w) ? w : today);
   const back = `/admin/calendar?week=${week}`;
-  const { db } = await requireAdmin();
-  const [s, { data: patients }, { data: visits }, { data: avail }] = await Promise.all([
-    getSettings(db),
+  const [{ data: patients }, { data: visits }, { data: avail }] = await Promise.all([
     db.from("patients").select("*").order("full_name"),
-    db.from("visits").select("*").gte("starts_at", istInstant(week, 0).toISOString()).lt("starts_at", istInstant(addDays(week, 7), 0).toISOString()).order("starts_at"),
+    db.from("visits").select("*").gte("starts_at", z.instant(week, 0).toISOString()).lt("starts_at", z.instant(addDays(week, 7), 0).toISOString()).order("starts_at"),
     db.from("availability").select("*").order("start_time"),
   ]);
   const plist = (patients ?? []) as Patient[];
@@ -55,7 +56,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
       </section>
 
       {days.map((day) => {
-        const dayVisits = list.filter((v) => istDay(new Date(v.starts_at)) === day);
+        const dayVisits = list.filter((v) => z.day(new Date(v.starts_at)) === day);
         const free = ((avail ?? []) as Availability[]).filter((a) => a.weekday === weekdayOf(day));
         return (
           <section key={day} className="card" id={day}>

@@ -14,6 +14,10 @@ export type Settings = {
   home_visit_fee: number;
   travel_buffer_minutes: number;
   whatsapp_mode: "manual" | "cloud_api";
+  time_zone: string;
+  currency: string;
+  country_code: string;
+  payment_instructions: string;
 };
 
 export type Practice = {

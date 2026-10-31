@@ -9,6 +9,7 @@ import type { Patient, PaymentRequest, Settings, Visit } from "@/lib/types";
 const s: Settings = {
   practice_name: "Om Physio", physio_name: "", clinic_name: "Dominate Performance", clinic_maps_url: "https://share.google/nQacWV52Jb7u5K6CU",
   upi_id: "omchavanl10-2@okhdfcbank", upi_payee_name: "", home_visit_fee: 300, travel_buffer_minutes: 30, whatsapp_mode: "manual",
+  time_zone: "Asia/Kolkata", currency: "INR", country_code: "91", payment_instructions: "",
 };
 const p = { id: "p", full_name: "Asha Rao", phone: "919820011111" } as Patient;
 const v = (start: string, location: "clinic" | "home") =>

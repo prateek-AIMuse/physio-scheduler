@@ -5,6 +5,7 @@ import { refreshQueue } from "@/lib/messages";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
 import type { Message, Patient } from "@/lib/types";
+import { zone } from "@/lib/time";
 
 export default async function Messages({ searchParams }: { searchParams: FlashParams }) {
   const flash = await searchParams;
@@ -22,7 +23,7 @@ export default async function Messages({ searchParams }: { searchParams: FlashPa
   const due = all.filter((m) => m.status === "failed" || Date.parse(m.due_at) <= now.getTime());
   const later = all.filter((m) => !due.includes(m));
   const manual = s.whatsapp_mode === "manual";
-  const item = (m: Message) => <li key={m.id}><MessageItem m={m} p={byId.get(m.patient_id)} manual={manual} back="/admin/messages" now={now} /></li>;
+  const item = (m: Message) => <li key={m.id}><MessageItem m={m} p={byId.get(m.patient_id)} manual={manual} back="/admin/messages" now={now} z={zone(s.time_zone)} /></li>;
 
   return (
     <main className="stack">

@@ -3,11 +3,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { browserClient } from "@/lib/supabase/browser";
 import { normalizePhone } from "@/lib/format";
+import { COUNTRIES } from "@/lib/regions";
 
 export function LoginForm({ next, initialTab = "patient" }: { next: string; initialTab?: "patient" | "physio" }) {
   const router = useRouter();
   const [tab, setTab] = useState<"patient" | "physio">(initialTab);
   const [phone, setPhone] = useState("");
+  const [country, setCountry] = useState("91");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
@@ -22,8 +24,8 @@ export function LoginForm({ next, initialTab = "patient" }: { next: string; init
   }
 
   const sendCode = (e: React.FormEvent) => { e.preventDefault(); run(async () => {
-    const digits = normalizePhone(phone);
-    if (!digits) throw new Error("Enter your mobile number, e.g. 98765 43210");
+    const digits = normalizePhone(phone, country);
+    if (!digits) throw new Error("Enter your mobile number");
     const { error } = await browserClient().auth.signInWithOtp({ phone: `+${digits}`, options: { shouldCreateUser: false } });
     if (error) throw new Error(/signups? not allowed|not found/i.test(error.message)
       ? "This number isn't on a patient list. Ask your physio to add it."
@@ -56,6 +58,9 @@ export function LoginForm({ next, initialTab = "patient" }: { next: string; init
       {error && <p className="notice error" role="alert" style={{ marginBottom: 12 }}>{error}</p>}
       {tab === "patient" && !sentTo && (
         <form onSubmit={sendCode} className="stack-sm">
+          <label>Country<select value={country} onChange={(e) => setCountry(e.target.value)}>
+            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name} (+{c.code})</option>)}
+          </select></label>
           <label>Mobile number<input type="tel" inputMode="tel" autoComplete="tel" placeholder="98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} required /></label>
           <button className="btn primary block" disabled={busy}>{busy ? "Sending…" : "Send me a code"}</button>
         </form>

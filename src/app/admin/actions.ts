@@ -9,7 +9,7 @@ import { loginText, paymentText, queueMessage } from "@/lib/messages";
 import { planWeek, type Location } from "@/lib/scheduler";
 import { getSettings } from "@/lib/settings";
 import type { PracticeDb } from "@/lib/practice-db";
-import { addDays, formatDay, formatInstantTime, isDay, istDay, istInstant, mondayOf, parseTime } from "@/lib/time";
+import { addDays, formatDay, isDay, isTimeZone, mondayOf, parseTime, zone, type Zone } from "@/lib/time";
 import { findClash } from "@/lib/visits";
 import { insertPreference } from "@/lib/preferences";
 import type { Patient, PaymentRequest, Preference, Visit } from "@/lib/types";
@@ -36,14 +36,20 @@ export async function saveSettings(fd: FormData) {
   if (fee === null || fee < 0) back(fd, "/admin/settings", { error: "Enter the home-visit fee (0 if none)" });
   const upi = str(fd, "upi_id");
   if (upi && !/^[\w.\-]+@[\w.\-]+$/.test(upi)) back(fd, "/admin/settings", { error: "That UPI ID doesn't look right (it's like name@okhdfcbank)" });
+  const timeZone = str(fd, "time_zone"), currency = str(fd, "currency").toUpperCase(), countryCode = str(fd, "country_code").replace(/\D/g, "");
+  if (!isTimeZone(timeZone)) back(fd, "/admin/settings", { error: "Pick a time zone" });
+  if (!/^[A-Z]{3}$/.test(currency)) back(fd, "/admin/settings", { error: "Pick a currency" });
+  if (!/^[1-9]\d{0,3}$/.test(countryCode)) back(fd, "/admin/settings", { error: "Pick a country for phone numbers" });
+  /* The practice's own settings row (practiceDb limits the update to it) */
   const { error } = await db.from("settings").update({
     practice_name: str(fd, "practice_name"), physio_name: str(fd, "physio_name"),
     clinic_name: str(fd, "clinic_name"), clinic_maps_url: str(fd, "clinic_maps_url"),
-    upi_id: upi, upi_payee_name: str(fd, "upi_payee_name"),
+    upi_id: upi, upi_payee_name: str(fd, "upi_payee_name"), payment_instructions: str(fd, "payment_instructions"),
     home_visit_fee: fee, travel_buffer_minutes: buffer,
+    time_zone: timeZone, currency, country_code: countryCode,
     whatsapp_mode: str(fd, "whatsapp_mode") === "cloud_api" ? "cloud_api" : "manual",
     updated_at: new Date().toISOString(),
-  }).eq("id", 1);
+  });
   done();
   back(fd, "/admin/settings", error ? { error: error.message } : { ok: "Settings saved" });
 }
@@ -72,7 +78,7 @@ export async function savePatient(fd: FormData) {
   const db = await admin();
   const id = str(fd, "id");
   const fallback = id ? `/admin/patients/${id}` : "/admin/patients/new";
-  const phone = normalizePhone(str(fd, "phone"));
+  const phone = normalizePhone(str(fd, "phone"), (await getSettings(db)).country_code);
   const name = str(fd, "full_name");
   const minutes = num(fd, "session_minutes"), perWeek = num(fd, "visits_per_week");
   if (!name) back(fd, fallback, { error: "Enter the patient's name" });
@@ -242,29 +248,30 @@ export async function updatePaymentAmount(fd: FormData) {
 
 /* ---------- Visits ---------- */
 
-function visitTimes(fd: FormData, minutes: number) {
+function visitTimes(fd: FormData, minutes: number, z: Zone) {
   const day = str(fd, "day"), time = str(fd, "time");
   if (!isDay(day) || !isTime(time)) return null;
-  const start = istInstant(day, parseTime(time));
+  const start = z.instant(day, parseTime(time));
   return { start, end: new Date(start.getTime() + minutes * 60_000) };
 }
 
 export async function addVisit(fd: FormData) {
   const db = await admin();
   const s = await getSettings(db);
+  const z = zone(s.time_zone);
   const { data: p } = await db.from("patients").select("*").eq("id", str(fd, "patient_id")).single();
   if (!p) back(fd, "/admin/calendar", { error: "Pick a patient" });
   const minutes = num(fd, "minutes") || p.session_minutes;
-  const t = visitTimes(fd, minutes);
+  const t = visitTimes(fd, minutes, z);
   if (!t) back(fd, "/admin/calendar", { error: "Pick a date and time" });
   const location = str(fd, "location") ? loc(str(fd, "location")) : p.default_location;
   if (fd.get("allow_clash") !== "on") {
-    const clash = await findClash(db, { ...t, location }, s.travel_buffer_minutes);
-    if (clash) back(fd, "/admin/calendar", { error: `Clashes with ${clashName(clash)} at ${formatInstantTime(new Date(clash.starts_at))}. Tick "Book anyway" to book it regardless.` });
+    const clash = await findClash(db, { ...t, location }, s.travel_buffer_minutes, z);
+    if (clash) back(fd, "/admin/calendar", { error: `Clashes with ${clashName(clash)} at ${z.time(new Date(clash.starts_at))}. Tick "Book anyway" to book it regardless.` });
   }
   const { error } = await db.from("visits").insert({ patient_id: p.id, starts_at: t.start.toISOString(), ends_at: t.end.toISOString(), location, status: "scheduled" });
   done();
-  back(fd, "/admin/calendar", error ? { error: error.message } : { ok: `Booked ${p.full_name}, ${formatDay(istDay(t.start))} ${formatInstantTime(t.start)}` });
+  back(fd, "/admin/calendar", error ? { error: error.message } : { ok: `Booked ${p.full_name}, ${formatDay(z.day(t.start))} ${z.time(t.start)}` });
 }
 
 const clashName = (v: Visit & { patients?: { full_name: string } | null }) => v.patients?.full_name ?? "another visit";
@@ -272,15 +279,16 @@ const clashName = (v: Visit & { patients?: { full_name: string } | null }) => v.
 export async function updateVisit(fd: FormData) {
   const db = await admin();
   const s = await getSettings(db);
+  const z = zone(s.time_zone);
   const { data: v } = await db.from("visits").select("*").eq("id", str(fd, "id")).single();
   if (!v || !["proposed", "scheduled"].includes(v.status)) back(fd, "/admin/calendar", { error: "Only upcoming visits can be changed" });
   const minutes = num(fd, "minutes") || Math.round((Date.parse(v.ends_at) - Date.parse(v.starts_at)) / 60_000);
-  const t = visitTimes(fd, minutes);
+  const t = visitTimes(fd, minutes, z);
   if (!t) back(fd, "/admin/calendar", { error: "Pick a date and time" });
   const location = loc(str(fd, "location"));
   if (fd.get("allow_clash") !== "on") {
-    const clash = await findClash(db, { id: v.id, ...t, location }, s.travel_buffer_minutes);
-    if (clash) back(fd, "/admin/calendar", { error: `Clashes with ${clashName(clash)} at ${formatInstantTime(new Date(clash.starts_at))}. Tick "Book anyway" to save it regardless.` });
+    const clash = await findClash(db, { id: v.id, ...t, location }, s.travel_buffer_minutes, z);
+    if (clash) back(fd, "/admin/calendar", { error: `Clashes with ${clashName(clash)} at ${z.time(new Date(clash.starts_at))}. Tick "Book anyway" to save it regardless.` });
   }
   await db.from("visits").update({ starts_at: t.start.toISOString(), ends_at: t.end.toISOString(), location }).eq("id", v.id);
   done();
@@ -332,15 +340,16 @@ export async function reopenVisit(fd: FormData) {
 
 export async function suggestWeek(fd: FormData) {
   const db = await admin();
-  const week = mondayOf(isDay(str(fd, "week")) ? str(fd, "week") : istDay(new Date()));
-  const path = `/admin/calendar?week=${week}`;
   const s = await getSettings(db);
+  const z = zone(s.time_zone);
+  const week = mondayOf(isDay(str(fd, "week")) ? str(fd, "week") : z.day(new Date()));
+  const path = `/admin/calendar?week=${week}`;
   const [{ data: avail }, { data: patients }, { data: prefs }, { data: booked }] = await Promise.all([
     db.from("availability").select("*"),
     db.from("patients").select("*").eq("active", true),
     db.from("preferences").select("*"),
     db.from("visits").select("*").in("status", ["proposed", "scheduled", "completed", "no_show"])
-      .gte("starts_at", istInstant(week, 0).toISOString()).lt("starts_at", istInstant(addDays(week, 7), 0).toISOString()),
+      .gte("starts_at", z.instant(week, 0).toISOString()).lt("starts_at", z.instant(addDays(week, 7), 0).toISOString()),
   ]);
   if (!avail?.length) back(fd, path, { error: "Add your free slots under Hours first" });
   const plist = (patients ?? []) as Patient[];
@@ -355,6 +364,7 @@ export async function suggestWeek(fd: FormData) {
     booked: ((booked ?? []) as Visit[]).map((v) => ({ patientId: v.patient_id, start: new Date(v.starts_at), end: new Date(v.ends_at), location: v.location })),
     bufferMinutes: s.travel_buffer_minutes,
     now: new Date(),
+    zone: z,
   });
   if (proposals.length) {
     const { error } = await db.from("visits").insert(proposals.map((p) => ({
@@ -374,18 +384,20 @@ export async function suggestWeek(fd: FormData) {
 
 export async function approveWeek(fd: FormData) {
   const db = await admin();
-  const week = mondayOf(isDay(str(fd, "week")) ? str(fd, "week") : istDay(new Date()));
+  const z = zone((await getSettings(db)).time_zone);
+  const week = mondayOf(isDay(str(fd, "week")) ? str(fd, "week") : z.day(new Date()));
   const { data } = await db.from("visits").update({ status: "scheduled" }).eq("status", "proposed")
-    .gte("starts_at", istInstant(week, 0).toISOString()).lt("starts_at", istInstant(addDays(week, 7), 0).toISOString()).select("id");
+    .gte("starts_at", z.instant(week, 0).toISOString()).lt("starts_at", z.instant(addDays(week, 7), 0).toISOString()).select("id");
   done();
   back(fd, `/admin/calendar?week=${week}`, { ok: `Booked ${data?.length ?? 0} visits. Patients get their weekly summary on Sunday evening and a reminder the day before each visit.` });
 }
 
 export async function clearSuggestions(fd: FormData) {
   const db = await admin();
-  const week = mondayOf(isDay(str(fd, "week")) ? str(fd, "week") : istDay(new Date()));
+  const z = zone((await getSettings(db)).time_zone);
+  const week = mondayOf(isDay(str(fd, "week")) ? str(fd, "week") : z.day(new Date()));
   await db.from("visits").delete().eq("status", "proposed")
-    .gte("starts_at", istInstant(week, 0).toISOString()).lt("starts_at", istInstant(addDays(week, 7), 0).toISOString());
+    .gte("starts_at", z.instant(week, 0).toISOString()).lt("starts_at", z.instant(addDays(week, 7), 0).toISOString());
   done();
   back(fd, `/admin/calendar?week=${week}`, { ok: "Suggestions cleared" });
 }

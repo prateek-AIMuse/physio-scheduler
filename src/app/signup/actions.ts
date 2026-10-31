@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { back, str } from "@/lib/forms";
 import { normalizePhone } from "@/lib/format";
+import { countryByCode } from "@/lib/regions";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 /* A physio creates their account and practice. Supabase emails them a confirmation link; after
@@ -10,7 +11,8 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 export async function signUpPhysio(fd: FormData) {
   const name = str(fd, "physio_name"), practiceName = str(fd, "practice_name"), city = str(fd, "city");
   const email = str(fd, "email").toLowerCase(), password = String(fd.get("password") ?? "");
-  const phone = normalizePhone(str(fd, "phone"));
+  const country = countryByCode(str(fd, "country"));
+  const phone = normalizePhone(str(fd, "phone"), country.code);
   if (!name) back(fd, "/signup", { error: "Enter your name" });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) back(fd, "/signup", { error: "Enter a valid email address" });
   if (password.length < 8) back(fd, "/signup", { error: "Choose a password of at least 8 characters" });
@@ -32,7 +34,10 @@ export async function signUpPhysio(fd: FormData) {
     owner_user_id: data.user.id, status: "pending", physio_name: name, email, phone, city, registration_no: str(fd, "registration_no"),
   }).select("id").single();
   const { error: sErr } = practice
-    ? await db.from("settings").insert({ practice_id: practice.id, practice_name: practiceName, physio_name: name })
+    ? await db.from("settings").insert({
+        practice_id: practice.id, practice_name: practiceName, physio_name: name,
+        country_code: country.code, currency: country.currency, time_zone: country.tz,
+      })
     : { error: null };
   if (pErr || !practice || sErr) {
     /* Don't leave a login behind without a practice: remove it so they can simply try again */

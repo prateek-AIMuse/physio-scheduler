@@ -2,11 +2,12 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Logo } from "@/components/logo";
-import { rupees } from "@/lib/format";
+import { money } from "@/lib/format";
 import { getSettings, practiceLabel } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/server";
 import { practiceDb } from "@/lib/practice-db";
 import { upiLink, upiQrSvg } from "@/lib/upi";
+import { usesUpi } from "@/lib/messages";
 import { supabaseConfigured } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Pay by UPI" };
@@ -24,7 +25,8 @@ export default async function Pay({ params }: { params: Promise<{ token: string 
   const amount = Number(r.amount);
   const first = (r.patients as { full_name: string } | null)?.full_name.split(" ")[0] ?? "";
   const link = upiLink({ upiId: s.upi_id, payee: s.upi_payee_name || practiceLabel(s), amount, note: r.description || `${practiceLabel(s)} sessions` });
-  const qr = r.status === "pending" && s.upi_id ? await upiQrSvg(link) : "";
+  const upi = usesUpi(s);
+  const qr = r.status === "pending" && upi ? await upiQrSvg(link) : "";
 
   return (
     <main className="auth">
@@ -33,11 +35,19 @@ export default async function Pay({ params }: { params: Promise<{ token: string 
       <p className="auth-brand" style={{ justifyContent: "center" }}><Logo />{practiceLabel(s)}</p>
       <div className="card stack" style={{ textAlign: "center" }}>
         <h1>{first ? `Hi ${first}` : "Payment"}</h1>
-        <p className="amount">{rupees(amount)}</p>
+        <p className="amount">{money(amount, s.currency)}</p>
         {r.description && <p className="muted">{r.description}</p>}
         {r.status === "paid" && <p className="notice">Paid. Thank you!</p>}
         {r.status === "cancelled" && <p className="notice warn">This request was withdrawn. Nothing to pay.</p>}
-        {r.status === "pending" && s.upi_id && <>
+        {r.status === "pending" && !upi && (
+          <div className="stack-sm" style={{ textAlign: "left" }}>
+            {s.payment_instructions
+              ? <p className="msg-body" style={{ borderLeftColor: "var(--teal)" }}>{s.payment_instructions}</p>
+              : <p className="muted" style={{ textAlign: "center" }}>Your physio will tell you how to pay.</p>}
+            <p className="small muted" style={{ textAlign: "center" }}>After you pay, your physio confirms it here.</p>
+          </div>
+        )}
+        {r.status === "pending" && upi && <>
           <a className="btn primary block" href={link}>Pay with a UPI app</a>
           <p className="small muted">Or scan with GPay, PhonePe, Paytm or your bank app:</p>
           <div className="qr" dangerouslySetInnerHTML={{ __html: qr }} />

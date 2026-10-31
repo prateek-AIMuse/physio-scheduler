@@ -1,4 +1,4 @@
-import { addDays, istDay, istInstant, weekdayOf, type Day } from "@/lib/time";
+import { addDays, weekdayOf, type Day, type Zone } from "@/lib/time";
 
 export type Location = "clinic" | "home";
 
@@ -29,7 +29,7 @@ type Candidate = { day: Day; dayIndex: number; start: Date; end: Date; location:
 
 /* Every start time, on a 15-minute grid, where the whole session fits inside both one of the
    physio's free slots and one of the patient's preferred windows */
-function candidatesFor(patient: PlannerPatient, weekStart: Day, availability: Window[], now: Date): Candidate[] {
+function candidatesFor(patient: PlannerPatient, weekStart: Day, availability: Window[], now: Date, z: Zone): Candidate[] {
   const out: Candidate[] = [];
   const seen = new Set<string>();
   for (let i = 0; i < 7; i++) {
@@ -39,10 +39,10 @@ function candidatesFor(patient: PlannerPatient, weekStart: Day, availability: Wi
       for (const free of availability.filter((a) => a.weekday === weekday)) {
         const from = Math.max(pref.start, free.start), to = Math.min(pref.end, free.end);
         for (let m = Math.ceil(from / STEP) * STEP; m + patient.sessionMinutes <= to; m += STEP) {
-          const start = istInstant(day, m);
+          const start = z.instant(day, m);
           if (start <= now || seen.has(`${day}-${m}`)) continue;
           seen.add(`${day}-${m}`);
-          out.push({ day, dayIndex: i, start, end: istInstant(day, m + patient.sessionMinutes), location: pref.location ?? patient.defaultLocation });
+          out.push({ day, dayIndex: i, start, end: z.instant(day, m + patient.sessionMinutes), location: pref.location ?? patient.defaultLocation });
         }
       }
     }
@@ -61,18 +61,20 @@ export function planWeek(input: {
   booked: Booked[];
   bufferMinutes: number;
   now: Date;
+  /* The practice's time zone: days and windows are in its local time */
+  zone: Zone;
 }): { proposals: Proposal[]; shortfalls: Shortfall[] } {
-  const { weekStart, availability, bufferMinutes, now } = input;
+  const { weekStart, availability, bufferMinutes, now, zone: z } = input;
   const taken: Booked[] = [...input.booked];
   const proposals: Proposal[] = [];
   const shortfalls: Shortfall[] = [];
 
   const work = input.patients
     .filter((p) => p.visitsPerWeek > 0)
-    .map((p) => ({ patient: p, candidates: candidatesFor(p, weekStart, availability, now) }))
+    .map((p) => ({ patient: p, candidates: candidatesFor(p, weekStart, availability, now, z) }))
     .sort((a, b) => a.candidates.length - b.candidates.length || a.patient.id.localeCompare(b.patient.id));
 
-  const weekIndex = (d: Date) => Math.round((Date.parse(`${istDay(d)}T00:00:00Z`) - Date.parse(`${weekStart}T00:00:00Z`)) / 86_400_000);
+  const weekIndex = (d: Date) => Math.round((Date.parse(`${z.day(d)}T00:00:00Z`) - Date.parse(`${weekStart}T00:00:00Z`)) / 86_400_000);
 
   for (const { patient, candidates } of work) {
     const usedDays = taken.filter((b) => b.patientId === patient.id).map((b) => weekIndex(b.start));

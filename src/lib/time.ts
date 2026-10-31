@@ -1,22 +1,52 @@
-/* All scheduling is in India time. India has no daylight saving, so a fixed +05:30 offset is exact. */
-const OFFSET_MIN = 330;
-export const TIME_ZONE = "Asia/Kolkata";
+/* Each practice works in its own time zone (Settings → Time zone). Calendar days are YYYY-MM-DD in
+   that zone and times of day are minutes since its midnight. Daylight saving is handled. */
+export const DEFAULT_TIME_ZONE = "Asia/Kolkata";
 
 export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 export const WEEKDAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/* A calendar day in India as YYYY-MM-DD */
 export type Day = string;
 
-export function istDay(date: Date): Day {
-  return new Date(date.getTime() + OFFSET_MIN * 60_000).toISOString().slice(0, 10);
+const formats = new Map<string, Intl.DateTimeFormat>();
+function wallClock(tz: string, date: Date) {
+  let f = formats.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    formats.set(tz, f);
+  }
+  const v = Object.fromEntries(f.formatToParts(date).map((p) => [p.type, p.value]));
+  return { y: +v.year, mo: +v.month, d: +v.day, h: +v.hour % 24, mi: +v.minute, s: +v.second };
 }
 
-/* Minutes since India midnight */
-export function istMinutes(date: Date): number {
-  const shifted = new Date(date.getTime() + OFFSET_MIN * 60_000);
-  return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
+/* Minutes the zone is ahead of UTC at that instant */
+function offsetMinutes(tz: string, date: Date) {
+  const w = wallClock(tz, date);
+  return Math.round((Date.UTC(w.y, w.mo - 1, w.d, w.h, w.mi, w.s) - date.getTime()) / 60_000);
 }
+
+export function isTimeZone(tz: unknown): tz is string {
+  if (typeof tz !== "string" || !tz) return false;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; }
+}
+
+/* Day and time helpers for one time zone */
+export function zone(tz: string = DEFAULT_TIME_ZONE) {
+  const name = isTimeZone(tz) ? tz : DEFAULT_TIME_ZONE;
+  const day = (date: Date): Day => {
+    const w = wallClock(name, date);
+    return `${w.y}-${String(w.mo).padStart(2, "0")}-${String(w.d).padStart(2, "0")}`;
+  };
+  const minutes = (date: Date) => { const w = wallClock(name, date); return w.h * 60 + w.mi; };
+  /* The instant at a local day and minute. Checked twice so days when the clocks change come out right. */
+  const instant = (d: Day, min: number) => {
+    const local = Date.parse(`${d}T00:00:00Z`) + min * 60_000;
+    let t = local - offsetMinutes(name, new Date(local)) * 60_000;
+    t = local - offsetMinutes(name, new Date(t)) * 60_000;
+    return new Date(t);
+  };
+  return { tz: name, day, minutes, instant, time: (date: Date) => formatTime(minutes(date)) };
+}
+export type Zone = ReturnType<typeof zone>;
 
 /* 1 = Monday … 7 = Sunday */
 export function weekdayOf(day: Day): number {
@@ -32,11 +62,6 @@ export function addDays(day: Day, n: number): Day {
 
 /* The Monday on or before the day */
 export const mondayOf = (day: Day): Day => addDays(day, 1 - weekdayOf(day));
-
-/* The instant at a given India day and minute */
-export function istInstant(day: Day, minutes: number): Date {
-  return new Date(new Date(`${day}T00:00:00Z`).getTime() + (minutes - OFFSET_MIN) * 60_000);
-}
 
 export const isDay = (s: unknown): s is Day => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 
@@ -54,8 +79,6 @@ export function formatTime(min: number): string {
   const h = Math.floor(min / 60), m = min % 60;
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
 }
-
-export const formatInstantTime = (date: Date) => formatTime(istMinutes(date));
 
 /* "2026-11-02" → "Mon 2 Nov" */
 export function formatDay(day: Day, long = false): string {

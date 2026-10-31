@@ -3,7 +3,8 @@ import { Flash, type FlashParams } from "@/components/flash";
 import { formatPhone } from "@/lib/format";
 import { packageStates } from "@/lib/packages";
 import { requireAdmin } from "@/lib/auth";
-import { formatDay, formatInstantTime, istDay } from "@/lib/time";
+import { getSettings } from "@/lib/settings";
+import { formatDay, zone } from "@/lib/time";
 import type { Package, Patient, Visit } from "@/lib/types";
 
 export default async function Patients({ searchParams }: { searchParams: FlashParams }) {
@@ -17,6 +18,7 @@ export default async function Patients({ searchParams }: { searchParams: FlashPa
     db.from("preferences").select("patient_id"),
   ]);
   const list = (patients ?? []) as Patient[];
+  const z = zone((await getSettings(db)).time_zone);
   return (
     <main className="stack">
       <div className="row between"><h1>Patients</h1><Link className="btn primary" href="/admin/patients/new">Add patient</Link></div>
@@ -41,7 +43,7 @@ export default async function Patients({ searchParams }: { searchParams: FlashPa
                   <div className="small" style={{ textAlign: "right" }}>
                     {current ? <p>{current.used} of {current.total_visits} used{!current.paid_at && <span className="chip pending" style={{ marginLeft: 6 }}>Unpaid</span>}</p>
                       : <p className="muted">No package</p>}
-                    {next && <p className="muted">Next {formatDay(istDay(new Date(next.starts_at)))} {formatInstantTime(new Date(next.starts_at))}</p>}
+                    {next && <p className="muted">Next {formatDay(z.day(new Date(next.starts_at)))} {z.time(new Date(next.starts_at))}</p>}
                   </div>
                 </li>
               );

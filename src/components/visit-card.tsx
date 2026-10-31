@@ -1,6 +1,6 @@
 import { completeVisit, reopenVisit, setVisitStatus, updateVisit } from "@/app/admin/actions";
 import { mapsLink } from "@/lib/format";
-import { formatInstantTime, istDay, istMinutes, toTime } from "@/lib/time";
+import { toTime, zone } from "@/lib/time";
 import { LOCATION_LABEL, STATUS_LABEL, type Patient, type Settings, type Visit } from "@/lib/types";
 
 function Btn({ id, back, action, label, status, cls = "" }: { id: string; back: string; action: (fd: FormData) => Promise<void>; label: string; status?: string; cls?: string }) {
@@ -20,9 +20,10 @@ export function VisitCard({ v, p, s, back, now }: { v: Visit; p: Patient | undef
   const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
   const map = v.location === "home" ? mapsLink(p?.address ?? "", p?.maps_url ?? "") : s.clinic_maps_url;
   const started = start <= now;
+  const z = zone(s.time_zone);
   return (
     <div className="visit">
-      <div className="time">{formatInstantTime(start)}<small>{minutes} min</small></div>
+      <div className="time">{z.time(start)}<small>{minutes} min</small></div>
       <div className="stack-sm">
         <div className="row">
           <a href={`/admin/patients/${v.patient_id}`} className="strong">{p?.full_name ?? "Unknown patient"}</a>
@@ -48,8 +49,8 @@ export function VisitCard({ v, p, s, back, now }: { v: Visit; p: Patient | undef
             <form action={updateVisit} className="fields">
               <input type="hidden" name="id" value={v.id} />
               <input type="hidden" name="back" value={back} />
-              <label>Date<input type="date" name="day" defaultValue={istDay(start)} required /></label>
-              <label>Time<input type="time" name="time" step={900} defaultValue={toTime(istMinutes(start))} required /></label>
+              <label>Date<input type="date" name="day" defaultValue={z.day(start)} required /></label>
+              <label>Time<input type="time" name="time" step={900} defaultValue={toTime(z.minutes(start))} required /></label>
               <label>Minutes<input type="number" name="minutes" min={15} max={180} step={15} defaultValue={minutes} /></label>
               <label>Place<select name="location" defaultValue={v.location}><option value="clinic">Clinic</option><option value="home">Home</option></select></label>
               <label className="check"><input type="checkbox" name="allow_clash" /> Book anyway if it clashes</label>

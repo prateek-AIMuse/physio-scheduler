@@ -6,11 +6,11 @@ import { APP_NAME } from "@/lib/brand";
 import { Photo } from "@/components/photo";
 import { PreferenceEditor } from "@/components/preference-editor";
 import { requirePatient } from "@/lib/auth";
-import { rupees } from "@/lib/format";
+import { money } from "@/lib/format";
 import { payUrl } from "@/lib/messages";
 import { packageStates } from "@/lib/packages";
 import { getSettings, practiceLabel } from "@/lib/settings";
-import { formatDay, formatInstantTime, istDay } from "@/lib/time";
+import { formatDay, zone } from "@/lib/time";
 import type { Package, PaymentRequest, Preference, Visit } from "@/lib/types";
 
 export default async function MyPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string; practice?: string }> }) {
@@ -34,6 +34,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
   };
   const { current } = packageStates((packages ?? []) as Package[], (counted ?? []) as Pick<Visit, "package_id">[]);
   const clinic = s.clinic_name || "the clinic";
+  const z = zone(s.time_zone);
 
   return (
     <div className="shell">
@@ -49,7 +50,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
           <div className="banner-body">
             <p className="small" style={{ opacity: 0.8 }}>{practiceLabel(s)}</p>
             <h1>Welcome, {patient.full_name}</h1>
-            <p>{visits?.length ? `Next session: ${formatDay(istDay(new Date(visits[0].starts_at)), true)} at ${formatInstantTime(new Date(visits[0].starts_at))}${visits[0].location === "home" ? ", at home" : `, ${clinic}`}` : "Add the times that suit you below, and your physio will plan your sessions."}</p>
+            <p>{visits?.length ? `Next session: ${formatDay(z.day(new Date(visits[0].starts_at)), true)} at ${z.time(new Date(visits[0].starts_at))}${visits[0].location === "home" ? ", at home" : `, ${clinic}`}` : "Add the times that suit you below, and your physio will plan your sessions."}</p>
           </div>
         </section>
         {others.length > 0 && (
@@ -63,7 +64,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
         <Flash {...flash} />
         {((requests ?? []) as PaymentRequest[]).map((r) => (
           <a key={r.id} href={payUrl(r)} className="notice warn" style={{ textDecoration: "none", color: "inherit" }}>
-            <b>{rupees(Number(r.amount))} due</b>{r.description && ` · ${r.description}`}. Tap to pay by UPI →
+            <b>{money(Number(r.amount), s.currency)} due</b>{r.description && ` · ${r.description}`}. Tap to pay →
           </a>
         ))}
 
@@ -75,7 +76,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
                 const start = new Date(v.starts_at);
                 return (
                   <li key={v.id} className="row between">
-                    <span><span className="strong">{formatDay(istDay(start), true)}</span>, {formatInstantTime(start)}</span>
+                    <span><span className="strong">{formatDay(z.day(start), true)}</span>, {z.time(start)}</span>
                     {v.location === "home" ? <span className="chip home">At home</span>
                       : <a className={`chip clinic`} href={s.clinic_maps_url || undefined} target="_blank" rel="noreferrer">{clinic}</a>}
                   </li>
