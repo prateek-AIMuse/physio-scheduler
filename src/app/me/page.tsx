@@ -1,4 +1,6 @@
-import { addMyPreference, deleteMyPreference } from "@/app/me/actions";
+import Link from "next/link";
+import { addMyPreference, cancelSession, deleteMyPreference } from "@/app/me/actions";
+import { changeable } from "@/lib/booking";
 import { Flash } from "@/components/flash";
 import { InstallPrompt } from "@/components/install-prompt";
 import { Logo } from "@/components/logo";
@@ -35,6 +37,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
   const { current } = packageStates((packages ?? []) as Package[], (counted ?? []) as Pick<Visit, "package_id">[]);
   const clinic = s.clinic_name || "the clinic";
   const z = zone(s.time_zone);
+  const now = new Date();
 
   return (
     <div className="shell">
@@ -69,21 +72,39 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
         ))}
 
         <section className="card">
-          <h2>Your next sessions</h2>
+          <div className="card-head">
+            <h2 style={{ margin: 0 }}>Your next sessions</h2>
+            {s.self_booking && <Link className="btn primary sm" href={`/me/book?practice=${patient.practice_id}`}>Book a session</Link>}
+          </div>
           {visits?.length ? (
             <ul className="list">
               {(visits as Visit[]).map((v) => {
                 const start = new Date(v.starts_at);
+                const canChange = changeable(v, s, now);
                 return (
-                  <li key={v.id} className="row between">
-                    <span><span className="strong">{formatDay(z.day(start), true)}</span>, {z.time(start)}</span>
-                    {v.location === "home" ? <span className="chip home">At home</span>
-                      : <a className={`chip clinic`} href={s.clinic_maps_url || undefined} target="_blank" rel="noreferrer">{clinic}</a>}
+                  <li key={v.id} className="stack-sm">
+                    <div className="row between">
+                      <span><span className="strong">{formatDay(z.day(start), true)}</span>, {z.time(start)}</span>
+                      {v.location === "home" ? <span className="chip home">At home</span>
+                        : <a className={`chip clinic`} href={s.clinic_maps_url || undefined} target="_blank" rel="noreferrer">{clinic}</a>}
+                    </div>
+                    {canChange && (
+                      <div className="row">
+                        <Link className="btn sm" href={`/me/book?practice=${patient.practice_id}&visit=${v.id}`}>Move</Link>
+                        <form action={cancelSession} className="inline">
+                          <input type="hidden" name="practice" value={patient.practice_id} />
+                          <input type="hidden" name="visit" value={v.id} />
+                          <input type="hidden" name="back" value={`/me?practice=${patient.practice_id}`} />
+                          <button className="btn sm danger">Cancel</button>
+                        </form>
+                      </div>
+                    )}
                   </li>
                 );
               })}
             </ul>
-          ) : <p className="empty">Nothing booked yet. Your physio plans the week ahead using the times below.</p>}
+          ) : <p className="empty">{s.self_booking ? "Nothing booked yet. Book a session, or add the times that suit you below." : "Nothing booked yet. Your physio plans the week ahead using the times below."}</p>}
+          {s.self_booking && <p className="small muted" style={{ marginTop: 10 }}>You can move or cancel a session up to {s.booking_notice_hours} hours before it starts.</p>}
         </section>
 
         <section className="card">

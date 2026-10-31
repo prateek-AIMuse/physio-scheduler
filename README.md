@@ -34,7 +34,8 @@ patient (`supabase/migrations/0002_practices.sql`).
 | Hours | The weekly free slots visits can go in |
 | Settings | Clinic name and map link, UPI ID, home-visit fee, travel time around home visits, WhatsApp mode |
 
-**For patients** (log in with their phone number, `/me`): their next sessions, the package counter
+**For patients** (log in with their phone number, `/me`): their next sessions (and, if the physio switches
+on self-booking in Settings, booking, moving and cancelling them up to a set number of hours ahead), the package counter
 (e.g. 4 of 6 done), anything due with a Pay button, and the days and times that suit them.
 
 ### How the week gets planned

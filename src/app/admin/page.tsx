@@ -17,13 +17,15 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
   const s = await getSettings(db);
   const z = zone(s.time_zone);
   const today = z.day(now), tomorrow = addDays(today, 1);
-  const [{ data: patients }, { data: visits }, { data: due }, { data: pending }, { count: proposed }] = await Promise.all([
+  const [{ data: patients }, { data: visits }, { data: due }, { data: pending }, { count: proposed }, { data: patientChanges }] = await Promise.all([
     db.from("patients").select("*"),
     db.from("visits").select("*").neq("status", "proposed")
       .gte("starts_at", z.instant(today, 0).toISOString()).lt("starts_at", z.instant(addDays(today, 2), 0).toISOString()).order("starts_at"),
     db.from("messages").select("*").eq("status", "pending").lte("due_at", now.toISOString()).order("due_at").limit(10),
     db.from("payment_requests").select("amount").eq("status", "pending"),
     db.from("visits").select("id", { count: "exact", head: true }).eq("status", "proposed"),
+    /* What patients booked, moved or cancelled themselves in the last 3 days */
+    db.from("visits").select("*").eq("booked_by", "patient").gte("changed_at", new Date(now.getTime() - 3 * 86_400_000).toISOString()).order("changed_at", { ascending: false }).limit(10),
   ]);
   const byId = new Map(((patients ?? []) as Patient[]).map((p) => [p.id, p]));
   const list = (visits ?? []) as Visit[];
@@ -64,6 +66,23 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
           <h2>Get your practice ready</h2>
           <ul className="list">
             {setup.map((t) => <li key={t.label} className="row between"><span>{t.label}</span><Link className="btn sm primary" href={t.href}>{t.action}</Link></li>)}
+          </ul>
+        </section>
+      )}
+
+      {!!patientChanges?.length && (
+        <section className="card">
+          <h2>Changes by patients</h2>
+          <ul className="list">
+            {(patientChanges as Visit[]).map((v) => (
+              <li key={v.id} className="row between">
+                <span>
+                  <Link href={`/admin/patients/${v.patient_id}`} className="strong">{byId.get(v.patient_id)?.full_name ?? "A patient"}</Link>
+                  {" "}{v.status === "cancelled" ? "cancelled" : "booked"} {formatDay(z.day(new Date(v.starts_at)))}, {z.time(new Date(v.starts_at))}
+                </span>
+                <span className="small muted">{v.changed_at && `${formatDay(z.day(new Date(v.changed_at)))} ${z.time(new Date(v.changed_at))}`}</span>
+              </li>
+            ))}
           </ul>
         </section>
       )}

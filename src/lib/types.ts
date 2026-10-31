@@ -18,6 +18,9 @@ export type Settings = {
   currency: string;
   country_code: string;
   payment_instructions: string;
+  self_booking: boolean;
+  booking_notice_hours: number;
+  booking_window_days: number;
 };
 
 export type Practice = {
@@ -74,6 +77,8 @@ export type Visit = {
   visit_no: number | null;
   home_fee: number;
   completed_at: string | null;
+  booked_by?: "physio" | "patient";
+  changed_at?: string | null;
 };
 
 export type PaymentRequest = {

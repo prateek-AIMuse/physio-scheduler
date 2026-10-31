@@ -47,6 +47,9 @@ export async function saveSettings(fd: FormData) {
     upi_id: upi, upi_payee_name: str(fd, "upi_payee_name"), payment_instructions: str(fd, "payment_instructions"),
     home_visit_fee: fee, travel_buffer_minutes: buffer,
     time_zone: timeZone, currency, country_code: countryCode,
+    self_booking: fd.get("self_booking") === "on",
+    booking_notice_hours: Math.min(168, Math.max(0, Math.round(num(fd, "booking_notice_hours") ?? 12))),
+    booking_window_days: Math.min(60, Math.max(1, Math.round(num(fd, "booking_window_days") ?? 14))),
     whatsapp_mode: str(fd, "whatsapp_mode") === "cloud_api" ? "cloud_api" : "manual",
     updated_at: new Date().toISOString(),
   });

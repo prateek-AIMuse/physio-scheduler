@@ -30,6 +30,7 @@ export function VisitCard({ v, p, s, back, now }: { v: Visit; p: Patient | undef
           <span className={`chip ${v.location}`}>{LOCATION_LABEL[v.location]}</span>
           {v.status !== "scheduled" && <span className={`chip ${v.status}`}>{STATUS_LABEL[v.status]}</span>}
           {v.visit_no && <span className="chip">Visit {v.visit_no}</span>}
+          {v.booked_by === "patient" && <span className="chip">Booked by patient</span>}
         </div>
         {v.location === "home" && p?.address && <p className="small muted">{p.address}</p>}
         <div className="row">

@@ -54,6 +54,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Fla
           <label>Payment instructions (shown when UPI doesn&apos;t apply)<textarea name="payment_instructions" rows={3} defaultValue={s.payment_instructions} placeholder="e.g. Bank transfer to: Account name, sort code / IBAN, reference: your name" /></label>
         </section>
         <section className="card stack-sm">
+          <h2>Patient self-booking</h2>
+          <label className="check"><input type="checkbox" name="self_booking" defaultChecked={s.self_booking} /> Let patients book, move and cancel their own sessions</label>
+          <div className="fields">
+            <label>Up to how many hours before a session<input name="booking_notice_hours" type="number" min={0} max={168} required defaultValue={s.booking_notice_hours} /></label>
+            <label>Show open times for the next (days)<input name="booking_window_days" type="number" min={1} max={60} required defaultValue={s.booking_window_days} /></label>
+          </div>
+          <p className="small muted">Patients only see times inside your free slots that don&apos;t clash with other visits (with travel time around home visits). Their bookings show on Today.</p>
+        </section>
+        <section className="card stack-sm">
           <h2>WhatsApp</h2>
           <label className="check"><input type="radio" name="whatsapp_mode" value="manual" defaultChecked={s.whatsapp_mode === "manual"} /> One-tap: I send each message from my own WhatsApp</label>
           <label className="check"><input type="radio" name="whatsapp_mode" value="cloud_api" defaultChecked={s.whatsapp_mode === "cloud_api"} disabled={!whatsappApiConfigured() && s.whatsapp_mode !== "cloud_api"} /> Automatic: send through the WhatsApp Business API</label>
