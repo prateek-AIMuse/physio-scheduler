@@ -104,11 +104,13 @@ export async function savePatient(fd: FormData) {
   const name = str(fd, "full_name");
   const minutes = num(fd, "session_minutes"), perWeek = num(fd, "visits_per_week");
   if (!name) back(fd, fallback, { error: "Enter the patient's name" });
+  const condition = str(fd, "condition");
+  if (!condition) back(fd, fallback, { error: "Enter the condition being treated" });
   if (!phone) back(fd, fallback, { error: "Enter a valid mobile number (10 digits for India, or with the country code)" });
   if (!minutes || minutes < 15 || minutes > 180) back(fd, fallback, { error: "Session length must be between 15 and 180 minutes" });
   if (perWeek === null || perWeek < 0 || perWeek > 7) back(fd, fallback, { error: "Visits a week must be between 0 and 7" });
   const row = {
-    full_name: name, phone, address: str(fd, "address"), maps_url: str(fd, "maps_url"),
+    full_name: name, phone, condition, address: str(fd, "address"), maps_url: str(fd, "maps_url"),
     session_minutes: minutes, visits_per_week: perWeek, default_location: loc(str(fd, "default_location")), notes: str(fd, "notes"),
   };
   const { data, error } = id

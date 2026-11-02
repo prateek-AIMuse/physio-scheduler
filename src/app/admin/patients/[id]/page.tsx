@@ -51,6 +51,7 @@ export default async function PatientPage({ params, searchParams }: { params: Pr
       <div className="row between">
         <div>
           <h1>{patient.full_name}</h1>
+          {patient.condition ? <p className="chip clinic" style={{ margin: "6px 0" }}>{patient.condition}</p> : <p className="small muted">No condition recorded yet. Add it under Edit details.</p>}
           <p className="muted small">{formatPhone(patient.phone)} · {patient.session_minutes}-minute sessions · {patient.visits_per_week} a week{!patient.active && " · Archived"}</p>
         </div>
         <div className="row">

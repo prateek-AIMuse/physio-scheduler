@@ -36,7 +36,7 @@ export default async function Patients({ searchParams }: { searchParams: FlashPa
                     <Link href={`/admin/patients/${p.id}`} className="strong">{p.full_name}</Link>
                     {!p.active && <span className="chip" style={{ marginLeft: 8 }}>Archived</span>}
                     <p className="small muted">
-                      {formatPhone(p.phone)} · {p.session_minutes} min · {p.visits_per_week}/week · {p.default_location === "home" ? "Home" : "Clinic"}
+                      {p.condition && <span className="strong" style={{ color: "var(--teal)" }}>{p.condition} · </span>}{formatPhone(p.phone)} · {p.session_minutes} min · {p.visits_per_week}/week · {p.default_location === "home" ? "Home" : "Clinic"}
                       {!hasPrefs && p.active && " · no preferred times"}
                     </p>
                   </div>
