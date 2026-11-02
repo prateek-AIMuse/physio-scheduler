@@ -25,24 +25,34 @@ const Icon = ({ d }: { d: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>
 );
 
-/* Wide screens: every section in the top menu, wrapping onto a second line rather than hiding any.
-   Phones: a bottom tab bar with the main sections and a More sheet for the rest, Owner and Log out. */
-export function AdminNav({ toSend, owner }: { toSend: number; owner: boolean }) {
+const Badge = ({ href, toSend }: { href: string; toSend: number }) =>
+  href === "/admin/messages" && toSend > 0 ? <span className="count" aria-label={`${toSend} to send`}>{toSend}</span> : null;
+
+/* Wide screens: every section in the top menu, wrapping onto a second line rather than hiding any */
+export function AdminNav({ toSend }: { toSend: number }) {
+  const path = usePathname();
+  return (
+    <nav className="nav" aria-label="Sections">
+      {[...MAIN.slice(0, 3), MORE[0], MAIN[3], ...MORE.slice(1)].map((l) => (
+        <Link key={l.href} href={l.href} aria-current={isCurrent(path, l.href) ? "page" : undefined}>{l.label}<Badge href={l.href} toSend={toSend} /></Link>
+      ))}
+    </nav>
+  );
+}
+
+/* Phones: a bottom tab bar with the main sections and a More sheet for the rest, Owner and Log out.
+   It must be rendered outside the header: Safari pins position: fixed elements to the nearest ancestor
+   with a backdrop-filter, transform or filter instead of to the screen, and the header has a blur. */
+export function PhoneNav({ toSend, owner }: { toSend: number; owner: boolean }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   /* Close the More sheet when the page changes */
   useEffect(() => { const t = setTimeout(() => setOpen(false), 0); return () => clearTimeout(t); }, [path]);
-  const badge = (href: string) => href === "/admin/messages" && toSend > 0 && <span className="count" aria-label={`${toSend} to send`}>{toSend}</span>;
+  const badge = (href: string) => <Badge href={href} toSend={toSend} />;
   const moreActive = MORE.some((m) => isCurrent(path, m.href));
 
   return (
     <>
-      <nav className="nav" aria-label="Sections">
-        {[...MAIN.slice(0, 3), MORE[0], MAIN[3], ...MORE.slice(1)].map((l) => (
-          <Link key={l.href} href={l.href} aria-current={isCurrent(path, l.href) ? "page" : undefined}>{l.label}{badge(l.href)}</Link>
-        ))}
-      </nav>
-
       <nav className="tabbar" aria-label="Main">
         {MAIN.map((l) => (
           <Link key={l.href} href={l.href} aria-current={isCurrent(path, l.href) ? "page" : undefined}>
