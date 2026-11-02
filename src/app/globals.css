@@ -67,7 +67,7 @@ img { max-width: 100%; display: block; }
 button, a, input, select, textarea, label { touch-action: manipulation; }
 
 /* ---------- App shell (physio and patient) ---------- */
-.shell { max-width: 980px; margin: 0 auto; padding: 0 16px calc(96px + var(--safe-bottom)); }
+.shell { max-width: 980px; min-width: 0; margin: 0 auto; padding: 0 16px calc(96px + var(--safe-bottom)); }
 .top {
   position: sticky; top: 0; z-index: 20; margin: 0 -16px 22px; padding: calc(10px + var(--safe-top)) 16px 0;
   background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px);
@@ -124,12 +124,14 @@ button, a, input, select, textarea, label { touch-action: manipulation; }
 @media (min-width: 721px) { .mobile-only { display: none !important; } }
 
 /* ---------- Building blocks ---------- */
-.stack { display: grid; gap: 16px; }
-.stack-sm { display: grid; gap: 8px; }
+/* minmax(0, 1fr): a grid column may shrink below its content, so a long line or a wide table can't
+   stretch the whole page wider than the phone screen */
+.stack { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.stack-sm { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .between { justify-content: space-between; }
 .grow { flex: 1; min-width: 0; }
-.grid2 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.grid2 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
 .nowrap { white-space: nowrap; }
@@ -189,11 +191,13 @@ input, select, textarea {
   padding: 9px 12px; min-height: 44px; width: 100%; transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none; appearance: none;
 }
 select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+/* Android Chrome gives date and time inputs a built-in minimum width; let them shrink to fit */
+input, select, textarea, label, .fields > * { min-width: 0; max-width: 100%; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 18%, transparent); }
 textarea { min-height: 80px; }
 input[type="checkbox"], input[type="radio"] { -webkit-appearance: auto; appearance: auto; width: 18px; height: 18px; min-height: 0; accent-color: var(--teal); }
 label.check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; min-height: 32px; }
-.fields { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: end; }
+.fields { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); align-items: end; }
 details > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.9rem; list-style: none; min-height: 32px; display: flex; align-items: center; }
 details > summary::-webkit-details-marker { display: none; }
 details[open] > summary { margin-bottom: 10px; }
@@ -202,7 +206,7 @@ details[open] > summary { margin-bottom: 10px; }
 .notice.error { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 30%, transparent); }
 .notice.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
 
-.visit { display: grid; grid-template-columns: 92px 1fr; gap: 12px; }
+.visit { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; }
 .visit .time { white-space: nowrap; font-family: var(--display); font-weight: 800; font-variant-numeric: tabular-nums; padding-left: 10px; border-left: 3px solid var(--teal); }
 .visit .time small { display: block; font-family: var(--font); font-weight: 500; color: var(--muted); }
 .day-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -326,4 +330,16 @@ th { color: var(--muted); font-weight: 600; border-top: 0; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .js .reveal { opacity: 1; transform: none; }
+}
+
+/* Tables that turn into stacked cards on phones: each cell shows its column name from data-label */
+@media (max-width: 720px) {
+  table.cards thead { display: none; }
+  table.cards, table.cards tbody, table.cards tr, table.cards td { display: block; width: 100%; }
+  table.cards tr { padding: 12px 0; border-top: 1px solid var(--line); }
+  table.cards tr:first-child { border-top: 0; padding-top: 0; }
+  table.cards td { border: 0; padding: 3px 0; display: flex; gap: 12px; justify-content: space-between; text-align: right; }
+  table.cards td::before { content: attr(data-label); color: var(--muted); font-weight: 600; text-align: left; flex: none; }
+  table.cards td:first-child { display: block; text-align: left; font-size: 1rem; }
+  table.cards td:first-child::before { content: none; }
 }

@@ -73,13 +73,13 @@ export default async function Payments({ searchParams }: { searchParams: FlashPa
       <section className="card">
         <h2>History</h2>
         {settled.length ? (
-          <table>
+          <table className="cards">
             <thead><tr><th>Patient</th><th>Amount</th><th>Status</th></tr></thead>
             <tbody>{settled.map((r) => (
               <tr key={r.id}>
                 <td>{byId.get(r.patient_id)?.full_name}<div className="small muted">{r.description}</div></td>
-                <td className="nowrap">{money(r.amount, s.currency)}</td>
-                <td><span className={`chip ${r.status}`}>{r.status === "paid" ? `Paid ${r.paid_at ? day(r.paid_at) : ""}${r.paid_via ? ` · ${r.paid_via === "razorpay" ? "Razorpay" : "Stripe"}` : ""}` : "Withdrawn"}</span></td>
+                <td data-label="Amount" className="nowrap">{money(r.amount, s.currency)}</td>
+                <td data-label="Status"><span className={`chip ${r.status}`}>{r.status === "paid" ? `Paid ${r.paid_at ? day(r.paid_at) : ""}${r.paid_via ? ` · ${r.paid_via === "razorpay" ? "Razorpay" : "Stripe"}` : ""}` : "Withdrawn"}</span></td>
               </tr>
             ))}</tbody>
           </table>
