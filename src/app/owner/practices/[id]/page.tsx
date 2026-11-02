@@ -69,8 +69,8 @@ export default async function PracticeView({ params }: { params: Promise<{ id: s
         <section className="card">
           <h2>Patients <span className="muted small">({list.length})</span></h2>
           {list.length ? (
-            <div style={{ overflowX: "auto" }}>
-              <table>
+            <div>
+              <table className="cards">
                 <thead><tr><th>Patient</th><th>Condition</th><th>Sessions</th><th>Package</th><th>Last visit</th><th>Next visit</th></tr></thead>
                 <tbody>
                   {list.map((pt) => {
@@ -80,11 +80,11 @@ export default async function PracticeView({ params }: { params: Promise<{ id: s
                     return (
                       <tr key={pt.id} style={pt.active ? undefined : { opacity: 0.55 }}>
                         <td><span className="strong">{pt.full_name}</span>{!pt.active && " (archived)"}<div className="small muted">{formatPhone(pt.phone)}</div></td>
-                        <td>{pt.condition || <span className="muted">—</span>}</td>
-                        <td className="small">{pt.session_minutes} min · {pt.visits_per_week}/week<div className="muted">{pt.default_location === "home" ? "Home visits" : "Clinic"}</div></td>
-                        <td className="small">{current ? <>{current.used}/{current.total_visits} used<div>{current.paid_at ? <span className="chip paid">Paid</span> : <span className="chip pending">Unpaid</span>}</div></> : <span className="muted">None</span>}</td>
-                        <td className="small nowrap">{when(last?.starts_at)}</td>
-                        <td className="small nowrap">{when(next?.starts_at)}</td>
+                        <td data-label="Condition">{pt.condition || <span className="muted">—</span>}</td>
+                        <td data-label="Sessions" className="small">{pt.session_minutes} min · {pt.visits_per_week}/week<div className="muted">{pt.default_location === "home" ? "Home visits" : "Clinic"}</div></td>
+                        <td data-label="Package" className="small">{current ? <>{current.used}/{current.total_visits} used<div>{current.paid_at ? <span className="chip paid">Paid</span> : <span className="chip pending">Unpaid</span>}</div></> : <span className="muted">None</span>}</td>
+                        <td data-label="Last visit" className="small nowrap">{when(last?.starts_at)}</td>
+                        <td data-label="Next visit" className="small nowrap">{when(next?.starts_at)}</td>
                       </tr>
                     );
                   })}
