@@ -35,6 +35,7 @@ patient (`supabase/migrations/0002_practices.sql`).
 | Messages | Every WhatsApp message: to send now, coming up, sent |
 | Hours | The weekly free slots visits can go in |
 | Settings | Clinic name and map link, UPI ID, home-visit fee, travel time around home visits, WhatsApp mode |
+| Website | The practice's own public page: address, profile, services and prices, booking on or off, share link and QR code |
 
 **For patients** (log in with their phone number, `/me`): their next sessions (and, if the physio switches
 on self-booking in Settings, booking, moving and cancelling them up to a set number of hours ahead), the package counter
@@ -92,6 +93,26 @@ schedule** (Sunday 6 pm, for the coming week), **payment requests**, and **login
   account in Settings → Online payments. Patients get a Pay online button; the gateway's webhook
   (signature-checked) marks the request paid. UPI and manual "Mark paid" still work.
 
+## The practice's mini website
+
+Every practice can have a public page at `/<address>` (for example `/dr-priya-shah`), set up under **Website**:
+
+- **What it shows:** the physio's name, one-line description, about text, qualifications, specialities, services
+  with prices, the clinic with its map link, the areas covered for home visits, and a *Message on WhatsApp* button.
+  The name, practice name and clinic come from Settings; the city and registration number from sign-up.
+- **Booking requests:** visitors pick a service, clinic or home, and one of the open times, then leave their name
+  and WhatsApp number. Open times are the same ones self-booking uses (inside Hours, clear of other visits, with
+  the notice and window from Settings). A request holds its time and shows on **Today**, where the physio taps
+  **Accept and book** (the visit is booked, a new person becomes a patient, and a WhatsApp confirmation is queued),
+  **Message**, or **Decline**. Nothing is booked without the physio's say.
+- **Limits on the public form:** one waiting request per phone number, at most 30 waiting requests a day per
+  practice, and a hidden field that catches simple bots. Phone numbers aren't verified, which is why the physio confirms.
+- **Sharing:** the Website page gives the link, a QR code for visiting cards and posters, and a WhatsApp share button.
+- Only published pages of approved practices are visible. Practice pages can be indexed by search engines; the rest
+  of the app can't. Addresses the app uses itself (`admin`, `login`, …) are reserved (`src/lib/practice-page.ts`).
+
+Needs `supabase/migrations/0008_practice_page.sql`.
+
 ## Phones and tablets
 
 The app works in Safari on iPhone and iPad and in Chrome on Android, as well as on any computer, and can
@@ -129,7 +150,7 @@ The current photos are free to use under the [Pexels licence](https://www.pexels
 
 1. **Supabase.** Create a free project at supabase.com. In the SQL editor, run
    `supabase/migrations/0001_schema.sql`, then the others in number order
-   (`0002_practices.sql`, `0003_regions.sql`, …). Each runs once.
+   (`0002_practices.sql`, `0003_regions.sql`, … up to `0008_practice_page.sql`). Each runs once.
    - Authentication → Users → **Add user**: the physio's email and a password, with *Auto confirm* on.
    - Authentication → URL Configuration: set the Site URL to the app's address and add
      `https://<app-address>/**` to the redirect URLs.

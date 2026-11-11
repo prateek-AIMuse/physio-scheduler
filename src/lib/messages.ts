@@ -69,6 +69,15 @@ export function loginText(p: Patient, s: Settings, link: string) {
   };
 }
 
+/* Sent when the physio accepts a booking request from their practice page */
+export function bookingConfirmedText(v: Visit, p: Patient, s: Settings) {
+  const minutes = Math.round((Date.parse(v.ends_at) - Date.parse(v.starts_at)) / 60_000);
+  return {
+    body: `Hi ${firstName(p)}, your physio session is confirmed: ${when(v, s)} (${minutes} min), ${place(v, s, p, true)}.\nReply here if you need to change it.\n${sign(s)}`,
+    params: [firstName(p), when(v, s), place(v, s, p, false)],
+  };
+}
+
 export async function queueMessage(db: Db, m: { patient_id: string; kind: MessageKind; body: string; params: string[]; visit_id?: string; dedupe_key?: string; due_at?: Date }) {
   const row = {
     patient_id: m.patient_id, kind: m.kind, body: m.body, template_params: m.params, visit_id: m.visit_id ?? null,
