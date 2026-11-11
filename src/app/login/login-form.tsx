@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { browserClient } from "@/lib/supabase/browser";
@@ -78,7 +79,7 @@ export function LoginForm({ next, initialTab = "patient" }: { next: string; init
           <label>Email<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
           <label>Password<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
           <button className="btn primary block" disabled={busy}>{busy ? "Logging in…" : "Log in"}</button>
-          <p className="small muted" style={{ textAlign: "center" }}>New to Movera? <a href="/signup">Create a physio account</a></p>
+          <p className="small muted" style={{ textAlign: "center" }}>New to Movera? <Link href="/signup">Create a physio account</Link></p>
         </form>
       )}
     </div>

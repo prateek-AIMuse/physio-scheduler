@@ -454,3 +454,50 @@ th { color: var(--muted); font-weight: 600; border-top: 0; }
   .hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; margin-top: 28px; }
   .hero-stats b { font-size: 1.15rem; }
 }
+
+/* ---------- A practice's mini website (/<slug>) and its editor ---------- */
+.site { min-height: 100dvh; display: flex; flex-direction: column; }
+.site-wrap { width: 100%; max-width: 760px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+.site-hero { position: relative; overflow: hidden; color: #fff; background: var(--grad-deep); padding: calc(36px + var(--safe-top)) 0 72px; }
+.site-hero::after { content: ""; position: absolute; width: 420px; height: 420px; right: -140px; top: -180px; border-radius: 50%; background: radial-gradient(circle, rgb(45 212 191 / 0.4), transparent 70%); pointer-events: none; }
+.site-id { display: flex; gap: 16px; align-items: center; position: relative; z-index: 1; }
+.site-avatar { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 50%; background: var(--grad); border: 3px solid rgb(255 255 255 / 0.7); font-family: var(--display); font-weight: 800; font-size: 1.6rem; box-shadow: var(--shadow-lg); }
+.site-hero h1 { font-size: clamp(1.7rem, 5.5vw, 2.4rem); }
+.site-headline { margin-top: 6px; font-size: 1.05rem; color: rgb(255 255 255 / 0.9); }
+.site-meta { margin-top: 4px; font-size: 0.86rem; color: rgb(255 255 255 / 0.7); }
+.site-cta { margin-top: 24px; gap: 10px; position: relative; z-index: 1; }
+.site-main { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); margin-top: -40px; padding-bottom: 40px; position: relative; flex: 1; align-content: start; }
+.site-main .card { box-shadow: var(--shadow); }
+.site-main h2 { font-size: 1.2rem; }
+.site-price { font-family: var(--display); font-weight: 800; font-size: 1.1rem; white-space: nowrap; }
+.prose { white-space: pre-line; }
+#book { scroll-margin-top: 16px; }
+.step-label { font-weight: 700; font-size: 0.9rem; }
+.pick { display: inline-grid; gap: 2px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); text-decoration: none; font-weight: 650; font-size: 0.92rem; transition: border-color 0.2s, box-shadow 0.2s; }
+.pick small { font-weight: 500; color: var(--muted); font-size: 0.8rem; }
+.pick:hover { border-color: var(--teal); }
+.pick.on { border-color: transparent; background: var(--grad); color: #fff; box-shadow: var(--shadow); }
+.pick.on small { color: rgb(255 255 255 / 0.85); }
+.slot-day { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); }
+.slot-day:first-of-type { border-top: 0; }
+/* Hidden from people, tempting to scripts */
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.site-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding-top: 24px; padding-bottom: calc(28px + var(--safe-bottom)); border-top: 1px solid var(--line); font-size: 0.85rem; }
+.site-footer a:not(.brand) { color: var(--muted); }
+
+.share { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.qr.sm { width: 132px; height: 132px; margin: 0; padding: 8px; border-radius: 14px; flex: none; }
+.prefixed { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); overflow: hidden; }
+.prefixed > span { display: flex; align-items: center; padding: 0 2px 0 12px; color: var(--muted); font-weight: 500; white-space: nowrap; max-width: 55%; overflow: hidden; text-overflow: ellipsis; }
+.prefixed input { border: 0; border-radius: 0; background: none; padding-left: 2px; }
+.prefixed:focus-within { border-color: var(--teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 18%, transparent); }
+.prefixed input:focus { box-shadow: none; }
+.service-rows { display: grid; gap: 12px; }
+.service-row { display: grid; gap: 8px; grid-template-columns: minmax(0, 2.2fr) repeat(3, minmax(0, 1fr)); align-items: end; }
+.service-row + .service-row label { font-size: 0; gap: 0; }
+@media (max-width: 720px) {
+  .service-row { grid-template-columns: 1fr 1fr; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .service-row label:first-child { grid-column: 1 / -1; }
+  .service-row + .service-row label { font-size: 0.84rem; gap: 5px; }
+  .service-row:last-child { border-bottom: 0; padding-bottom: 0; }
+}

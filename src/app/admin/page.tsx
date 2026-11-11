@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BookingRequests } from "@/components/booking-requests";
 import { Flash, type FlashParams } from "@/components/flash";
 import { MessageItem } from "@/components/message-item";
 import { VisitCard } from "@/components/visit-card";
@@ -7,6 +8,7 @@ import { refreshQueue } from "@/lib/messages";
 import { getSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth";
 import { addDays, formatDay, zone } from "@/lib/time";
+import type { BookingRequest } from "@/lib/practice-page";
 import type { Message, Patient, Visit } from "@/lib/types";
 
 export default async function Today({ searchParams }: { searchParams: FlashParams }) {
@@ -34,15 +36,19 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
   const owed = (pending ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
   const messages = (due ?? []) as Message[];
   /* First-run checklist for a new practice */
-  const [{ count: slots }, { count: patientCount }] = await Promise.all([
+  const [{ count: slots }, { count: patientCount }, { data: requests }, { data: site }] = await Promise.all([
     db.from("availability").select("id", { count: "exact", head: true }),
     db.from("patients").select("id", { count: "exact", head: true }),
+    /* Asked for on the practice's page (empty until 0008_practice_page.sql has been run) */
+    db.from("booking_requests").select("*").eq("status", "new").gte("starts_at", now.toISOString()).order("starts_at").limit(20),
+    db.from("practice_pages").select("published").maybeSingle(),
   ]);
   const setup = [
     !s.physio_name || !s.clinic_name ? { label: "Add your name and clinic", action: "Settings", href: "/admin/settings" } : null,
     !s.upi_id ? { label: "Add your UPI ID so patients can pay you", action: "Settings", href: "/admin/settings" } : null,
     !slots ? { label: "Set the weekly hours you see patients", action: "Hours", href: "/admin/hours" } : null,
     !patientCount ? { label: "Add your first patient", action: "Add patient", href: "/admin/patients/new" } : null,
+    !(site as { published?: boolean } | null)?.published ? { label: "Publish your practice page so new patients can find and book you", action: "Website", href: "/admin/website" } : null,
   ].filter((t): t is { label: string; action: string; href: string } => t !== null);
 
   return (
@@ -69,6 +75,8 @@ export default async function Today({ searchParams }: { searchParams: FlashParam
           </ul>
         </section>
       )}
+
+      <BookingRequests requests={(requests ?? []) as unknown as BookingRequest[]} z={z} />
 
       {!!patientChanges?.length && (
         <section className="card">
